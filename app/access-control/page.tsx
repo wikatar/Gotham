@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import AppLayout from '../components/layout/AppLayout'
 import { useMission } from '../lib/missionContext'
+import Button from '../components/ui/Button'
 
 export default function AccessControlPage() {
   const { currentMission } = useMission()
@@ -107,9 +109,19 @@ export default function AccessControlPage() {
 
   return (
     <AppLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold mb-2">Access Control</h1>
-        <p className="text-text-secondary">Manage users, roles, and permissions for your workspace</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold mb-2">Access Control</h1>
+          <p className="text-text-secondary">Manage users, roles, and permissions for your workspace</p>
+        </div>
+        <div className="flex space-x-3">
+          <Link href="/access-control/cell-security">
+            <Button variant="secondary">Cell-Level Security</Button>
+          </Link>
+          <Link href="/access-control/data-lineage">
+            <Button variant="secondary">Data Lineage</Button>
+          </Link>
+        </div>
       </div>
       
       {/* Tab Navigation */}

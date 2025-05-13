@@ -1,18 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import AppLayout from '../components/layout/AppLayout'
 import AIInsightsPanel from '../components/analytics/AIInsightsPanel'
 import PredictiveAnalyticsPanel from '../components/analytics/PredictiveAnalyticsPanel'
+import Button from '../components/ui/Button'
 
 export default function AIInsightsPage() {
   const [activeTab, setActiveTab] = useState('insights')
 
   return (
     <AppLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold mb-2">AI Insights</h1>
-        <p className="text-text-secondary">Leverage AI to gain actionable insights from your data</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold mb-2">AI Insights</h1>
+          <p className="text-text-secondary">Leverage AI to gain actionable insights from your data</p>
+        </div>
+        <div>
+          <Link href="/ai-insights/auto-ml">
+            <Button>Launch AutoML Wizard</Button>
+          </Link>
+        </div>
       </div>
       
       {/* Tab Navigation */}
