@@ -24,13 +24,29 @@ A powerful data analytics platform for businesses, inspired by Palantir, offerin
 
 ```bash
 # Install dependencies
-npm install
+npm install --legacy-peer-deps
 
 # Run the development server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+
+## Current Status
+
+- **Dashboard**: Fully functional with interactive charts and stats cards
+- **Database Explorer**: Operational with sample data and schema visualization
+- **AI Insights**: Working with simulated AI responses
+- **Globe Visualization**: Currently using a simplified version due to Three.js compatibility issues (will be upgraded in future releases)
+
+## Roadmap for Future Development
+
+- Implement full 3D globe visualization with WebGL fallback for broader compatibility
+- Add authentication and user management
+- Expand database connection options
+- Implement real AI processing with OpenAI integration
+- Add collaborative features for team analytics
+- Enhance data import/export capabilities
 
 ## Project Structure
 
