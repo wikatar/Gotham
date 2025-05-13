@@ -135,7 +135,7 @@ export default function EnhancedTARSAssistant() {
     } else if (query.toLowerCase().includes('help') || query.toLowerCase().includes('how')) {
       response = 'I\'m TARS, your analytical assistant powered by advanced machine learning. I provide contextual guidance, data interpretation, and actionable recommendations. How can I assist with your current analysis needs?'
     } else if (query.toLowerCase().includes('tars') || query.toLowerCase().includes('your name')) {
-      response = 'I\'m TARS, named after the adaptive AI from Interstellar. I\'m designed to assist with data analysis, visualization interpretation, and insight generation across the Gotham Analytics platform. My purpose is to augment your analytical capabilities and help extract meaningful insights from complex data.'
+      response = 'I\'m TARS, named after the adaptive AI from Interstellar. I\'m designed to assist with data analysis, visualization interpretation, and insight generation across the Monolith Analytics platform. My purpose is to augment your analytical capabilities and help extract meaningful insights from complex data.'
     } else {
       response = `Based on your query about "${query}", I can provide several analytical perspectives. In a full implementation, I would connect to your live data sources to deliver real-time insights. Would you like me to focus on specific metrics or patterns related to this topic?`;
     }

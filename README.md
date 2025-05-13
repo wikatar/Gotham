@@ -1,4 +1,4 @@
-# Gotham Analytics
+# Monolith Analytics
 
 A powerful data analytics platform for businesses, inspired by Palantir, offering comprehensive data visualization, analysis, and AI-powered insights.
 

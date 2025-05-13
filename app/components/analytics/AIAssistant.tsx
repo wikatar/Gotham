@@ -31,7 +31,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
         {
           id: '0',
           role: 'assistant',
-          content: 'Hello! I\'m your Gotham Analytics assistant. How can I help you with your data analysis today?',
+          content: 'Hello! I\'m your Monolith Analytics assistant. How can I help you with your data analysis today?',
           timestamp: new Date()
         }
       ])
@@ -40,7 +40,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
 
   // Update context based on current page
   useEffect(() => {
-    let context = 'Gotham Analytics platform'
+    let context = 'Monolith Analytics platform'
     
     if (pathname === '/') {
       setCurrentContext('Dashboard')
@@ -55,7 +55,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
       setCurrentContext('AI Insights')
       context = 'AI-generated insights panel showing analysis of business data with confidence scores'
     } else {
-      setCurrentContext('Gotham Analytics')
+      setCurrentContext('Monolith Analytics')
     }
 
     // Add a context message if new context and not first message
@@ -105,7 +105,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
     } else if (query.toLowerCase().includes('insight') || query.toLowerCase().includes('ai') || context === 'AI Insights') {
       response = 'The AI Insights section shows automatically generated analysis of your data. Each insight has a confidence score and relevant tags to help you understand its significance.'
     } else if (query.toLowerCase().includes('help') || query.toLowerCase().includes('how')) {
-      response = 'I can help you navigate Gotham Analytics, understand the data visualizations, explain metrics, or answer questions about the platform. Just let me know what you\'re looking for!'
+      response = 'I can help you navigate Monolith Analytics, understand the data visualizations, explain metrics, or answer questions about the platform. Just let me know what you\'re looking for!'
     } else {
       response = 'I understand you\'re asking about ' + query + '. While I\'m a simplified demonstration of what an AI assistant could do in this platform, in a full implementation I would analyze your data and provide specific insights.'
     }

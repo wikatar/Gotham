@@ -3,7 +3,7 @@ import './globals.css'
 import { TARSProvider } from './lib/tarsContext'
 
 export const metadata: Metadata = {
-  title: 'Gotham Analytics',
+  title: 'Monolith Analytics',
   description: 'Advanced data analytics platform for businesses',
 }
 

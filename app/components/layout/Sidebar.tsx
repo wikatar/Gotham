@@ -26,7 +26,7 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between p-4 border-b border-secondary/20">
         {!collapsed && (
-          <div className="text-lg font-bold text-gradient">Gotham Analytics</div>
+          <div className="text-lg font-bold text-gradient">Monolith Analytics</div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
@@ -60,7 +60,7 @@ export default function Sidebar() {
       <div className="absolute bottom-0 w-full p-4 border-t border-secondary/20">
         {!collapsed && (
           <div className="text-sm text-text-secondary">
-            Gotham Analytics v0.1.0
+            Monolith Analytics v0.1.0
           </div>
         )}
       </div>

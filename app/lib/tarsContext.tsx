@@ -45,7 +45,7 @@ interface TARSProviderProps {
 
 export function TARSProvider({ children }: TARSProviderProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [currentContext, setCurrentContext] = useState('Gotham Analytics')
+  const [currentContext, setCurrentContext] = useState('Monolith Analytics')
   const [trustLevel, setTrustLevel] = useState(85)
   const [suggestedQuery, setSuggestedQuery] = useState<string | null>(null)
   const [instances, setInstances] = useState<TARSInstance[]>([])
@@ -194,7 +194,7 @@ export function TARSProvider({ children }: TARSProviderProps) {
       setCurrentContext('AI Insights')
       setTrustLevel(95)
     } else {
-      setCurrentContext('Gotham Analytics')
+      setCurrentContext('Monolith Analytics')
       setTrustLevel(85)
     }
   }, [pathname])
