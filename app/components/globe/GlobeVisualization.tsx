@@ -5,8 +5,15 @@ import dynamic from 'next/dynamic'
 import Card from '../ui/Card'
 import Button from '../ui/Button'
 
-// Dynamically import Globe to avoid SSR issues
-const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
+// Dynamically import Globe with noSSR to avoid webgpu issues
+const Globe = dynamic(() => import('react-globe.gl').then(mod => mod.default), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[calc(100vh-250px)] flex items-center justify-center">
+      <div className="text-text-secondary">Loading Globe Visualization...</div>
+    </div>
+  )
+})
 
 // Sample data for location points
 const samplePoints = [
@@ -34,17 +41,22 @@ export default function GlobeVisualization() {
   const [arcsData, setArcsData] = useState(sampleArcs)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [showArcs, setShowArcs] = useState(true)
+  const [globeReady, setGlobeReady] = useState(false)
   
   useEffect(() => {
-    if (globeRef.current) {
-      // Initial globe rotation animation
-      globeRef.current.controls().autoRotate = true
-      globeRef.current.controls().autoRotateSpeed = 0.5
-      
-      // Set initial camera position
-      globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 })
+    if (globeRef.current && globeReady) {
+      try {
+        // Initial globe rotation animation
+        globeRef.current.controls().autoRotate = true
+        globeRef.current.controls().autoRotateSpeed = 0.5
+        
+        // Set initial camera position
+        globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 })
+      } catch (err) {
+        console.error('Error initializing globe controls:', err)
+      }
     }
-  }, [])
+  }, [globeReady])
   
   useEffect(() => {
     if (activeCategory) {
@@ -57,9 +69,9 @@ export default function GlobeVisualization() {
   const categories = Array.from(new Set(samplePoints.map(point => point.category)))
   
   const globeConfig = {
-    globeImageUrl: '//unpkg.com/three-globe/example/img/earth-dark.jpg',
-    bumpImageUrl: '//unpkg.com/three-globe/example/img/earth-topology.png',
-    backgroundImageUrl: '//unpkg.com/three-globe/example/img/night-sky.png',
+    globeImageUrl: 'https://unpkg.com/three-globe/example/img/earth-dark.jpg',
+    bumpImageUrl: 'https://unpkg.com/three-globe/example/img/earth-topology.png',
+    backgroundImageUrl: 'https://unpkg.com/three-globe/example/img/night-sky.png',
   }
   
   return (
@@ -96,25 +108,28 @@ export default function GlobeVisualization() {
       <Card title="Global Data Visualization" className="flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 relative">
           <div className="w-full h-[calc(100vh-250px)]">
-            <Globe
-              ref={globeRef}
-              width={1000}
-              height={800}
-              {...globeConfig}
-              pointsData={pointsData}
-              pointLabel="name"
-              pointColor={() => 'rgba(144, 202, 249, 1)'}
-              pointAltitude={0.01}
-              pointRadius="value"
-              pointsMerge={true}
-              arcsData={showArcs ? arcsData : []}
-              arcColor="color"
-              arcDashLength={0.4}
-              arcDashGap={0.2}
-              arcDashAnimateTime={1500}
-              arcsTransitionDuration={1000}
-              backgroundColor="rgba(0,0,0,0)"
-            />
+            {typeof window !== 'undefined' && (
+              <Globe
+                ref={globeRef}
+                width={800}
+                height={600}
+                {...globeConfig}
+                pointsData={pointsData}
+                pointLabel="name"
+                pointColor={() => 'rgba(144, 202, 249, 1)'}
+                pointAltitude={0.01}
+                pointRadius="value"
+                pointsMerge={true}
+                arcsData={showArcs ? arcsData : []}
+                arcColor="color"
+                arcDashLength={0.4}
+                arcDashGap={0.2}
+                arcDashAnimateTime={1500}
+                arcsTransitionDuration={1000}
+                backgroundColor="rgba(0,0,0,0)"
+                onGlobeReady={() => setGlobeReady(true)}
+              />
+            )}
           </div>
           
           <div className="absolute bottom-4 right-4 glass-panel p-3 rounded-md text-sm">
