@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import TARSAssistant from './TARSAssistant'
 import { useTARS } from '../../lib/tarsContext'
+import EnhancedTARSAssistant from './EnhancedTARSAssistant'
 
 interface TARSControllerProps {
   externalExpanded?: boolean;
@@ -67,7 +67,7 @@ export default function TARSController({ externalExpanded }: TARSControllerProps
         </div>
       )}
       
-      <TARSAssistant />
+      <EnhancedTARSAssistant />
       
       {/* Add an info badge on first visit */}
       {!localStorage.getItem('tars-intro-shown') && (
