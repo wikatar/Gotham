@@ -2,6 +2,7 @@
 
 import Sidebar from './Sidebar'
 import Header from './Header'
+import AIAssistantButton from '../analytics/AIAssistantButton'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      <AIAssistantButton />
     </div>
   )
 } 
