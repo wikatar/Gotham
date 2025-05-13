@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   ComposableMap, 
   Geographies, 
@@ -12,8 +12,8 @@ import {
 import Card from '../ui/Card'
 import Button from '../ui/Button'
 
-// World map geojson
-const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries.json"
+// World map geojson - use a more reliable source
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
 
 // Sample data for location points
 const samplePoints = [
@@ -43,6 +43,8 @@ export default function WorldMapVisualization() {
   const [tooltipContent, setTooltipContent] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  const [mapError, setMapError] = useState(false)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
   
   useEffect(() => {
     if (activeCategory) {
@@ -52,10 +54,27 @@ export default function WorldMapVisualization() {
     }
   }, [activeCategory])
   
+  useEffect(() => {
+    const handleResize = () => {
+      // Force re-render on resize to adjust map dimensions
+      setZoom(zoom => zoom + 0.001);
+      setTimeout(() => setZoom(zoom => Math.floor(zoom * 1000) / 1000), 100);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   const categories = Array.from(new Set(samplePoints.map(point => point.category)))
   
   const getMarkerSize = (value: number) => {
     return Math.max(8, Math.min(value / 5, 20))
+  }
+  
+  // Handle error for map rendering
+  const handleMapError = () => {
+    console.error("Error loading or rendering the map");
+    setMapError(true);
   }
   
   return (
@@ -102,79 +121,119 @@ export default function WorldMapVisualization() {
       </div>
       
       <Card title="Global Data Visualization" className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 relative bg-background-elevated rounded-lg">
-          <ComposableMap
-            projectionConfig={{
-              scale: 170,
-            }}
-            width={800}
-            height={400}
-            style={{ width: "100%", height: "100%" }}
-          >
-            <ZoomableGroup zoom={zoom} center={[0, 0]} maxZoom={5}>
-              <Geographies geography={geoUrl}>
-                {({ geographies }) =>
-                  geographies.map(geo => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill="#333333"
-                      stroke="#505050"
-                      strokeWidth={0.5}
-                      style={{
-                        default: { outline: "none" },
-                        hover: { fill: "#404040", outline: "none" },
-                        pressed: { fill: "#505050", outline: "none" },
-                      }}
-                    />
-                  ))
-                }
-              </Geographies>
-              
-              {showConnections && arcsData.map((arc, i) => (
-                <Line
-                  key={`arc-${i}`}
-                  from={arc.start}
-                  to={arc.end}
-                  stroke="rgba(144, 202, 249, 0.6)"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                  onMouseEnter={(e) => {
-                    setTooltipContent(arc.name)
-                    setTooltipPosition({ x: e.clientX, y: e.clientY })
-                  }}
-                  onMouseLeave={() => {
-                    setTooltipContent(null)
-                  }}
+        <div 
+          ref={mapContainerRef}
+          className="flex-1 relative bg-background-elevated rounded-lg"
+          style={{ minHeight: '400px' }}
+        >
+          {!mapError ? (
+            <ComposableMap
+              projectionConfig={{
+                scale: 170,
+                rotation: [0, 0, 0],
+              }}
+              style={{ 
+                width: "100%", 
+                height: "100%",
+                background: "#1c1c1c" 
+              }}
+            >
+              <ZoomableGroup 
+                zoom={zoom} 
+                center={[0, 0]} 
+                maxZoom={5}
+              >
+                <rect
+                  x="-8000"
+                  y="-8000"
+                  width="16000"
+                  height="16000"
+                  fill="#1c1c1c"
                 />
-              ))}
-              
-              {pointsData.map((point, i) => (
-                <Marker 
-                  key={`marker-${i}`} 
-                  coordinates={point.coordinates}
-                  onMouseEnter={(e) => {
-                    setTooltipContent(`${point.name} (${point.category}): ${point.value}`)
-                    setTooltipPosition({ x: e.clientX, y: e.clientY })
-                  }}
-                  onMouseLeave={() => {
-                    setTooltipContent(null)
-                  }}
+                
+                <Geographies 
+                  geography={geoUrl}
+                  onError={handleMapError}
                 >
-                  <circle 
-                    r={getMarkerSize(point.value)} 
-                    fill="rgba(144, 202, 249, 0.8)" 
-                    stroke="#FFFFFF" 
-                    strokeWidth={1} 
+                  {({ geographies }) =>
+                    geographies.map(geo => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill="#2d2d2d"
+                        stroke="#3d3d3d"
+                        strokeWidth={0.5}
+                        style={{
+                          default: { outline: "none" },
+                          hover: { fill: "#3d3d3d", outline: "none" },
+                          pressed: { fill: "#505050", outline: "none" },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
+                
+                {showConnections && arcsData.map((arc, i) => (
+                  <Line
+                    key={`arc-${i}`}
+                    from={arc.start}
+                    to={arc.end}
+                    stroke="rgba(144, 202, 249, 0.6)"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    onMouseEnter={(e) => {
+                      setTooltipContent(arc.name)
+                      setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseLeave={() => {
+                      setTooltipContent(null)
+                    }}
                   />
-                </Marker>
-              ))}
-            </ZoomableGroup>
-          </ComposableMap>
+                ))}
+                
+                {pointsData.map((point, i) => (
+                  <Marker 
+                    key={`marker-${i}`} 
+                    coordinates={point.coordinates}
+                    onMouseEnter={(e) => {
+                      setTooltipContent(`${point.name} (${point.category}): ${point.value}`)
+                      setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseLeave={() => {
+                      setTooltipContent(null)
+                    }}
+                  >
+                    <circle 
+                      r={getMarkerSize(point.value)} 
+                      fill="rgba(144, 202, 249, 0.8)" 
+                      stroke="#FFFFFF" 
+                      strokeWidth={1} 
+                    />
+                  </Marker>
+                ))}
+              </ZoomableGroup>
+            </ComposableMap>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center p-6">
+                <div className="text-5xl mb-4">🌐</div>
+                <h3 className="text-xl font-medium mb-2">Map Visualization</h3>
+                <p className="text-text-secondary mb-4">
+                  Unable to load the world map. Check console for details.
+                </p>
+                <Button 
+                  onClick={() => setMapError(false)}
+                  variant="primary"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
           
           {tooltipContent && (
             <div 
-              className="absolute glass-panel p-2 rounded-md text-sm pointer-events-none"
+              className="absolute glass-panel p-2 rounded-md text-sm pointer-events-none z-10"
               style={{ 
                 left: `${tooltipPosition.x + 10}px`, 
                 top: `${tooltipPosition.y + 10}px` 
@@ -184,7 +243,7 @@ export default function WorldMapVisualization() {
             </div>
           )}
           
-          <div className="absolute bottom-4 right-4 glass-panel p-3 rounded-md text-sm">
+          <div className="absolute bottom-4 right-4 glass-panel p-3 rounded-md text-sm z-10">
             <div className="font-medium mb-2">Legend</div>
             <div className="flex items-center mb-1">
               <div className="w-3 h-3 rounded-full bg-[rgba(144,202,249,0.8)] mr-2"></div>
