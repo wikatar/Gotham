@@ -46,26 +46,52 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <nav className="p-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 130px)' }}>
-        <ul className="space-y-1">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <Link href={item.path}>
-                <div
-                  className={`flex items-center p-3 rounded-md transition-colors duration-200 ${
-                    pathname === item.path
-                      ? 'bg-primary text-text-primary'
-                      : 'hover:bg-secondary/20 text-text-secondary'
-                  }`}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  {!collapsed && <span className="ml-3">{item.name}</span>}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <div className="px-2 mb-6">
+        <div className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-2 pl-2">
+          Enterprise Brain
+        </div>
+        <nav className="space-y-1">
+          <SidebarItem 
+            icon="🧭" 
+            label="Control Interface" 
+            href="/control"
+            badge={4}
+          />
+          <SidebarItem 
+            icon="🔌" 
+            label="Feed Center" 
+            href="/feed-center"
+            badge={2}
+          />
+          <SidebarItem 
+            icon="🧠" 
+            label="Semantic Model" 
+            href="/semantic-model"
+          />
+          <SidebarItem 
+            icon="📋" 
+            label="Missions" 
+            href="/missions"
+            badge={3}
+            active={pathname.startsWith('/missions')}
+          />
+          <SidebarItem 
+            icon="🤖" 
+            label="Agent Center" 
+            href="/agent-center"
+          />
+          <SidebarItem 
+            icon="🔍" 
+            label="Explainability" 
+            href="/explainability"
+          />
+          <SidebarItem 
+            icon="🌍" 
+            label="Global View" 
+            href="/globe"
+          />
+        </nav>
+      </div>
       
       <div className="absolute bottom-0 w-full p-4 border-t border-secondary/20">
         {!collapsed && (
