@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { TARSProvider } from './lib/tarsContext'
+import { MissionProvider } from './lib/missionContext'
 
 export const metadata: Metadata = {
   title: 'Monolith Analytics',
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-background text-text-primary">
-        <TARSProvider>
-          {children}
-        </TARSProvider>
+        <MissionProvider>
+          <TARSProvider>
+            {children}
+          </TARSProvider>
+        </MissionProvider>
       </body>
     </html>
   )

@@ -2,13 +2,32 @@
 
 import { useState } from 'react'
 import TARSStatus from '../analytics/TARSStatus'
+import MissionSelector from './MissionSelector'
+import DashboardPresets from '../dashboard/DashboardPresets'
+import DataSourceSelector from '../dashboard/DataSourceSelector'
+import { usePathname } from 'next/navigation'
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState('')
+  const pathname = usePathname()
+  
+  // Determine if we're on a page where dashboard controls should be shown
+  const showDashboardControls = pathname === '/' || pathname.startsWith('/dashboard')
   
   return (
     <header className="bg-background-paper border-b border-secondary/20 h-16 flex items-center justify-between px-4">
-      <div className="flex-1 max-w-2xl">
+      <div className="flex items-center space-x-4 flex-1">
+        <MissionSelector />
+        
+        {showDashboardControls && (
+          <>
+            <DashboardPresets />
+            <DataSourceSelector />
+          </>
+        )}
+      </div>
+      
+      <div className="flex-1 max-w-xl mx-4">
         <div className="relative">
           <input
             type="text"
