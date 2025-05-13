@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { TARSProvider } from './lib/tarsContext'
 
 export const metadata: Metadata = {
   title: 'Gotham Analytics',
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-background text-text-primary">
-        {children}
+        <TARSProvider>
+          {children}
+        </TARSProvider>
       </body>
     </html>
   )

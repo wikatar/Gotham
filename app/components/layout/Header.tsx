@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import TARSStatus from '../analytics/TARSStatus'
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -23,6 +24,8 @@ export default function Header() {
       </div>
       
       <div className="flex items-center space-x-4">
+        <TARSStatus />
+        
         <button className="p-2 rounded-full hover:bg-secondary/20">
           🔔
         </button>
