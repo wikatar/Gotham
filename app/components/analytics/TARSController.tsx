@@ -11,6 +11,7 @@ interface TARSControllerProps {
 
 export default function TARSController({ externalExpanded }: TARSControllerProps) {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
+  const [showInfoBadge, setShowInfoBadge] = useState(false)
   const pathname = usePathname()
   
   const { 
@@ -19,6 +20,12 @@ export default function TARSController({ externalExpanded }: TARSControllerProps
     toggleTARS,
     trustLevel 
   } = useTARS()
+  
+  // Check if should show info badge (client-side only)
+  useEffect(() => {
+    const introShown = localStorage.getItem('tars-intro-shown')
+    setShowInfoBadge(!introShown)
+  }, [])
   
   // Update expanded state if external prop changes
   useEffect(() => {
@@ -51,6 +58,12 @@ export default function TARSController({ externalExpanded }: TARSControllerProps
     }
   }, [toggleTARS])
   
+  const hideInfoBadge = () => {
+    localStorage.setItem('tars-intro-shown', 'true')
+    setShowInfoBadge(false)
+    expandTARS()
+  }
+  
   return (
     <>
       {/* Side indicator that's always visible when collapsed */}
@@ -70,12 +83,9 @@ export default function TARSController({ externalExpanded }: TARSControllerProps
       <EnhancedTARSAssistant />
       
       {/* Add an info badge on first visit */}
-      {!localStorage.getItem('tars-intro-shown') && (
+      {showInfoBadge && (
         <div className="fixed bottom-28 right-28 bg-accent text-white text-xs px-3 py-1 rounded-full animate-bounce z-50"
-          onClick={() => {
-            localStorage.setItem('tars-intro-shown', 'true');
-            expandTARS();
-          }}
+          onClick={hideInfoBadge}
         >
           Press Alt+T for TARS
         </div>
