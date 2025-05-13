@@ -1,5 +1,5 @@
 import AppLayout from '../components/layout/AppLayout'
-import WorldMapVisualization from '../components/globe/WorldMapVisualization'
+import CDNGlobe from '../components/globe/CDNGlobe'
 
 export default function GlobePage() {
   return (
@@ -10,7 +10,7 @@ export default function GlobePage() {
       </div>
       
       <div className="h-[calc(100vh-200px)]">
-        <WorldMapVisualization />
+        <CDNGlobe />
       </div>
     </AppLayout>
   )
