@@ -6,7 +6,7 @@ A powerful data analytics platform for businesses, inspired by Palantir, offerin
 
 - **Minimalist UI**: Clean, greyscale interface that prioritizes data visibility while hiding complexity.
 - **Interactive Visualizations**: Customizable dashboards with various chart types.
-- **Global Data Mapping**: Geographic visualization of data points on an interactive 3D globe.
+- **Global Data Mapping**: Geographic visualization of data points on an interactive world map.
 - **Database Integration**: Visual database exploration and manipulation.
 - **AI Analysis**: LLM integration for contextual understanding and insights.
 - **Ontology Management**: Create relationships between data entities.
@@ -15,7 +15,7 @@ A powerful data analytics platform for businesses, inspired by Palantir, offerin
 ## Tech Stack
 
 - **Frontend**: Next.js (React), TypeScript, TailwindCSS
-- **Visualization**: D3.js, react-globe.gl, Recharts
+- **Visualization**: D3.js, react-simple-maps, Recharts
 - **Backend**: Next.js API routes
 - **Database**: MongoDB with Mongoose ORM
 - **AI Integration**: LangChain with OpenAI
@@ -37,11 +37,11 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Dashboard**: Fully functional with interactive charts and stats cards
 - **Database Explorer**: Operational with sample data and schema visualization
 - **AI Insights**: Working with simulated AI responses
-- **Globe Visualization**: Currently using a simplified version due to Three.js compatibility issues (will be upgraded in future releases)
+- **Globe Visualization**: Interactive world map with location markers and connection lines
 
 ## Roadmap for Future Development
 
-- Implement full 3D globe visualization with WebGL fallback for broader compatibility
+- Add 3D globe visualization option
 - Add authentication and user management
 - Expand database connection options
 - Implement real AI processing with OpenAI integration
