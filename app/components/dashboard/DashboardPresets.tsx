@@ -4,6 +4,13 @@ import { useState } from 'react'
 import { useMission } from '../../lib/missionContext'
 import Button from '../ui/Button'
 
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function DashboardPresets() {
   const { 
     currentDashboard, 
@@ -62,7 +69,7 @@ export default function DashboardPresets() {
                 >
                   <div className="text-sm">{preset.name}</div>
                   <div className="text-xs text-text-secondary">
-                    {new Date(preset.createdAt).toLocaleDateString()}
+                    {formatDate(new Date(preset.createdAt))}
                   </div>
                 </button>
               ))
