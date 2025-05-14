@@ -25,7 +25,7 @@ export default function GlobePage() {
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'globe' 
-              ? 'border-b-2 border-primary text-primary'
+              ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveTab('globe')}
@@ -35,7 +35,7 @@ export default function GlobePage() {
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'flows' 
-              ? 'border-b-2 border-primary text-primary'
+              ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveTab('flows')}
@@ -45,7 +45,7 @@ export default function GlobePage() {
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'anomalies' 
-              ? 'border-b-2 border-primary text-primary'
+              ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveTab('anomalies')}
@@ -55,7 +55,7 @@ export default function GlobePage() {
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'events' 
-              ? 'border-b-2 border-primary text-primary'
+              ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveTab('events')}
@@ -66,7 +66,10 @@ export default function GlobePage() {
       
       {/* Filters */}
       {(activeTab === 'globe' || activeTab === 'flows') && (
-        <Card className="mb-6 p-4">
+        <Card 
+          title="Data Filters"
+          className="mb-6"
+        >
           <div className="flex flex-wrap gap-2">
             <Button 
               variant={activeFilter === null ? 'primary' : 'secondary'} 
@@ -135,23 +138,19 @@ export default function GlobePage() {
       
       {/* Stats summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-        <Card className="flex flex-col">
-          <div className="text-text-secondary text-sm mb-1">Active Datapoints</div>
+        <Card title="Active Datapoints">
           <div className="text-3xl font-bold">1,247</div>
         </Card>
         
-        <Card className="flex flex-col">
-          <div className="text-text-secondary text-sm mb-1">Data Flow Rate</div>
+        <Card title="Data Flow Rate">
           <div className="text-3xl font-bold text-green-500">324 GB/hr</div>
         </Card>
         
-        <Card className="flex flex-col">
-          <div className="text-text-secondary text-sm mb-1">Active Connections</div>
+        <Card title="Active Connections">
           <div className="text-3xl font-bold text-blue-500">78</div>
         </Card>
         
-        <Card className="flex flex-col">
-          <div className="text-text-secondary text-sm mb-1">Anomalies Detected</div>
+        <Card title="Anomalies Detected">
           <div className="text-3xl font-bold text-yellow-500">12</div>
         </Card>
       </div>

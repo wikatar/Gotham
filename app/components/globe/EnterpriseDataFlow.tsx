@@ -117,6 +117,16 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
       default: return 'bg-gray-500';
     }
   };
+
+  // Get status border color
+  const getStatusBorderColor = (status: string) => {
+    switch(status) {
+      case 'active': return 'border-green-500';
+      case 'warning': return 'border-yellow-500';
+      case 'error': return 'border-red-500';
+      default: return 'border-gray-500';
+    }
+  };
   
   // Get node info for the selected node
   const getSelectedNodeInfo = () => {
@@ -145,17 +155,23 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
     const rates = flowRateHistory[connectionId];
     return rates ? rates[animationFrame] : 50;
   };
+
+  // Get connection color based on status
+  const getConnectionColor = (status: string) => {
+    switch(status) {
+      case 'active': return '#4CAF50';
+      case 'warning': return '#FFC107';
+      case 'error': return '#F44336';
+      default: return '#909090';
+    }
+  };
   
   return (
-    <Card className="p-0 overflow-hidden">
-      <div className="flex border-b border-secondary/20">
-        <div className="flex-1 p-4">
-          <h2 className="text-lg font-medium">Enterprise Data Flow Visualization</h2>
-          <p className="text-sm text-text-secondary">
-            Interactive diagram of system connections and data pipelines
-          </p>
-        </div>
-        <div className="flex space-x-2 p-4">
+    <Card 
+      title="Enterprise Data Flow Visualization"
+      className="p-0 overflow-hidden"
+      actions={
+        <div className="flex space-x-2">
           <Button 
             variant={showNodeMetrics ? 'primary' : 'secondary'} 
             size="sm"
@@ -171,9 +187,9 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
             {showConnectionMetrics ? 'Hide Flow Metrics' : 'Show Flow Metrics'}
           </Button>
         </div>
-      </div>
-      
-      <div className="relative bg-background-paper h-[calc(100vh-400px)] min-h-[500px] p-4 overflow-auto">
+      }
+    >
+      <div className="relative bg-background-elevated/60 h-[calc(100vh-400px)] min-h-[500px] p-4 overflow-auto">
         {/* SVG for connections */}
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
           <defs>
@@ -185,8 +201,22 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
               refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
+              <polygon points="0 0, 10 3.5, 0 7" fill="#FFFFFF" />
             </marker>
+            
+            {/* Define gradients for different connection statuses */}
+            <linearGradient id="gradient-active" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#4CAF50" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#4CAF50" stopOpacity="0.4" />
+            </linearGradient>
+            <linearGradient id="gradient-warning" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#FFC107" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#FFC107" stopOpacity="0.4" />
+            </linearGradient>
+            <linearGradient id="gradient-error" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#F44336" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#F44336" stopOpacity="0.4" />
+            </linearGradient>
           </defs>
           
           {filteredConnections.map(conn => {
@@ -214,8 +244,9 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
                   <text
                     x={(source.x + target.x) / 2}
                     y={(source.y + target.y) / 2 - 15}
-                    className="text-xs fill-current text-text-secondary"
+                    className="text-xs fill-current text-white"
                     textAnchor="middle"
+                    style={{ textShadow: '0 0 3px rgba(0,0,0,0.8)' }}
                   >
                     {`${flowRate}%`}
                   </text>
@@ -225,6 +256,16 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
           })}
         </svg>
         
+        {/* Grid lines for better spatial reference */}
+        <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 pointer-events-none">
+          {[...Array(3)].map((_, i) => (
+            <React.Fragment key={`grid-v-${i}`}>
+              <div className="border-r border-secondary/10 h-full"></div>
+              <div className="border-b border-secondary/10 w-full"></div>
+            </React.Fragment>
+          ))}
+        </div>
+        
         {/* Nodes */}
         {filteredNodes.map(node => {
           const nodeMetrics = flowMetrics[node.id];
@@ -232,11 +273,11 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
           return (
             <div
               key={node.id}
-              className={`absolute px-4 py-2 border ${
+              className={`absolute px-4 py-2 border-2 ${
                 selectedNode === node.id 
-                  ? 'border-primary shadow-lg' 
-                  : 'border-secondary/30'
-              } rounded-md bg-background-elevated cursor-pointer transition-all hover:shadow-md`}
+                  ? 'border-[#FF3333] shadow-lg shadow-[#FF3333]/20' 
+                  : getStatusBorderColor(nodeMetrics.status)
+              } rounded-md bg-background-paper text-white transition-all hover:shadow-md backdrop-blur-sm`}
               style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
               onClick={() => setSelectedNode(node.id === selectedNode ? null : node.id)}
             >
@@ -265,7 +306,7 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
         
         {/* Selected Node Details Sidebar */}
         {selectedNode && getSelectedNodeInfo() && (
-          <div className="absolute top-4 right-4 w-64 bg-background-elevated rounded-md shadow-lg p-4 border border-primary/30">
+          <div className="absolute top-4 right-4 w-64 bg-background-paper rounded-md shadow-lg p-4 border-2 border-[#FF3333]/30">
             <div className="flex justify-between items-start mb-4">
               <h3 className="font-medium">{getSelectedNodeInfo()?.node.name}</h3>
               <button 
