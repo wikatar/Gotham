@@ -1,19 +1,19 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Card from '../ui/Card'
 import Button from '../ui/Button'
 
 // Dummy data for enterprise data flow
 const flowNodes = [
-  { id: 'customer-data', name: 'Customer Data Lake', type: 'source', category: 'feedback', x: 100, y: 150 },
-  { id: 'crm', name: 'CRM System', type: 'process', category: 'service', x: 300, y: 100 },
-  { id: 'analytics', name: 'Analytics Engine', type: 'process', category: 'churn', x: 500, y: 150 },
-  { id: 'warehouse', name: 'Data Warehouse', type: 'storage', category: 'warehouse', x: 300, y: 350 },
-  { id: 'bi', name: 'BI Dashboard', type: 'visualization', category: 'office', x: 700, y: 100 },
-  { id: 'marketing', name: 'Marketing Platform', type: 'process', category: 'churn', x: 700, y: 250 },
-  { id: 'ml', name: 'ML Prediction', type: 'process', category: 'service', x: 500, y: 300 },
-  { id: 'external', name: 'External APIs', type: 'source', category: 'feedback', x: 100, y: 300 }
+  { id: 'customer-data', name: 'Customer Data Lake', type: 'source', category: 'feedback', x: 200, y: 150 },
+  { id: 'crm', name: 'CRM System', type: 'process', category: 'service', x: 400, y: 100 },
+  { id: 'analytics', name: 'Analytics Engine', type: 'process', category: 'churn', x: 600, y: 150 },
+  { id: 'warehouse', name: 'Data Warehouse', type: 'storage', category: 'warehouse', x: 400, y: 350 },
+  { id: 'bi', name: 'BI Dashboard', type: 'visualization', category: 'office', x: 800, y: 100 },
+  { id: 'marketing', name: 'Marketing Platform', type: 'process', category: 'churn', x: 800, y: 250 },
+  { id: 'ml', name: 'ML Prediction', type: 'process', category: 'service', x: 600, y: 300 },
+  { id: 'external', name: 'External APIs', type: 'source', category: 'feedback', x: 200, y: 300 }
 ]
 
 const flowConnections = [
@@ -75,6 +75,34 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
   const [animationFrame, setAnimationFrame] = useState(0);
   const [filteredNodes, setFilteredNodes] = useState(flowNodes);
   const [filteredConnections, setFilteredConnections] = useState(flowConnections);
+  const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Center the visualization on initial render
+  useEffect(() => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      // Calculate the bounding box of all nodes
+      const minX = Math.min(...flowNodes.map(n => n.x));
+      const maxX = Math.max(...flowNodes.map(n => n.x));
+      const minY = Math.min(...flowNodes.map(n => n.y));
+      const maxY = Math.max(...flowNodes.map(n => n.y));
+      
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      
+      // Offset to center the visualization
+      setViewportOffset({
+        x: containerWidth / 2 - centerX,
+        y: containerHeight / 2 - centerY
+      });
+    }
+  }, []);
   
   // Handle filtering
   useEffect(() => {
@@ -97,6 +125,27 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
     
     setFilteredNodes(nodes);
     setFilteredConnections(connections);
+    
+    // Auto-center on the filtered nodes
+    if (containerRef.current && nodes.length > 0) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      // Calculate the bounding box of filtered nodes
+      const minX = Math.min(...nodes.map(n => n.x));
+      const maxX = Math.max(...nodes.map(n => n.x));
+      const minY = Math.min(...nodes.map(n => n.y));
+      const maxY = Math.max(...nodes.map(n => n.y));
+      
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      
+      // Offset to center the visualization
+      setViewportOffset({
+        x: containerWidth / 2 - centerX,
+        y: containerHeight / 2 - centerY
+      });
+    }
   }, [filter]);
   
   // Animation frame update
@@ -107,6 +156,62 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
     
     return () => clearInterval(interval);
   }, []);
+  
+  // Mouse event handlers for dragging
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // Only handle left click
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    
+    setViewportOffset(prev => ({
+      x: prev.x + deltaX,
+      y: prev.y + deltaY
+    }));
+    
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setZoom(prev => Math.max(0.5, Math.min(2, prev + delta)));
+  };
+  
+  // Reset view to center
+  const resetView = () => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      // Calculate the bounding box of all (or filtered) nodes
+      const nodes = filter ? filteredNodes : flowNodes;
+      const minX = Math.min(...nodes.map(n => n.x));
+      const maxX = Math.max(...nodes.map(n => n.x));
+      const minY = Math.min(...nodes.map(n => n.y));
+      const maxY = Math.max(...nodes.map(n => n.y));
+      
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      
+      // Offset to center the visualization
+      setViewportOffset({
+        x: containerWidth / 2 - centerX,
+        y: containerHeight / 2 - centerY
+      });
+      setZoom(1);
+    }
+  };
   
   // Get status color
   const getStatusColor = (status: string) => {
@@ -140,13 +245,19 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
     return { node, metrics };
   };
   
-  // Calculate connection path
+  // Calculate connection path with offset and zoom
   const getConnectionPath = (source: any, target: any) => {
-    // Simple bezier curve
-    const midX = (source.x + target.x) / 2;
-    const midY = (source.y + target.y) / 2 - 40; // Control point above the line
+    // Apply viewport transformations
+    const sourceX = source.x * zoom + viewportOffset.x;
+    const sourceY = source.y * zoom + viewportOffset.y;
+    const targetX = target.x * zoom + viewportOffset.x;
+    const targetY = target.y * zoom + viewportOffset.y;
     
-    return `M ${source.x} ${source.y} Q ${midX} ${midY} ${target.x} ${target.y}`;
+    // Simple bezier curve
+    const midX = (sourceX + targetX) / 2;
+    const midY = (sourceY + targetY) / 2 - 40 * zoom; // Control point above the line
+    
+    return `M ${sourceX} ${sourceY} Q ${midX} ${midY} ${targetX} ${targetY}`;
   };
   
   // Get current flow rate for animation
@@ -173,6 +284,13 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
       actions={
         <div className="flex space-x-2">
           <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={resetView}
+          >
+            Reset View
+          </Button>
+          <Button 
             variant={showNodeMetrics ? 'primary' : 'secondary'} 
             size="sm"
             onClick={() => setShowNodeMetrics(!showNodeMetrics)}
@@ -189,7 +307,30 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
         </div>
       }
     >
-      <div className="relative bg-background-elevated/60 h-[calc(100vh-400px)] min-h-[500px] p-4 overflow-auto">
+      <div 
+        ref={containerRef}
+        className="relative bg-background-elevated/60 h-[calc(100vh-400px)] min-h-[500px] p-4 overflow-hidden cursor-move"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+      >
+        <div className="absolute top-4 left-4 bg-background-paper/80 p-2 rounded-md text-xs z-10 pointer-events-none backdrop-blur-sm">
+          <div>Pan: Click and drag</div>
+          <div>Zoom: Scroll wheel</div>
+          <div>Zoom level: {Math.round(zoom * 100)}%</div>
+        </div>
+        
+        {/* Grid lines for better spatial reference */}
+        <div className="absolute inset-0 pointer-events-none" style={{ transform: `translate(${viewportOffset.x % (100 * zoom)}px, ${viewportOffset.y % (100 * zoom)}px)` }}>
+          <div className="grid" style={{ gridTemplateColumns: `repeat(auto-fill, ${100 * zoom}px)`, gridTemplateRows: `repeat(auto-fill, ${100 * zoom}px)` }}>
+            {Array.from({ length: 100 }).map((_, i) => (
+              <div key={`grid-cell-${i}`} className="border border-secondary/5" style={{ width: `${100 * zoom}px`, height: `${100 * zoom}px` }}></div>
+            ))}
+          </div>
+        </div>
+        
         {/* SVG for connections */}
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
           <defs>
@@ -226,7 +367,7 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
             if (!source || !target) return null;
             
             const flowRate = getCurrentFlowRate(conn.source, conn.target);
-            const strokeWidth = Math.max(1, flowRate / 20);
+            const strokeWidth = Math.max(1, flowRate / 20) * zoom;
             
             return (
               <g key={`${conn.source}-${conn.target}`}>
@@ -235,18 +376,18 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
                   fill="none"
                   stroke={`url(#gradient-${conn.status})`}
                   strokeWidth={strokeWidth}
-                  strokeDasharray="5,5"
+                  strokeDasharray={`${5 * zoom},${5 * zoom}`}
                   className="connection-path"
                   markerEnd="url(#arrowhead)"
                 />
                 
                 {showConnectionMetrics && (
                   <text
-                    x={(source.x + target.x) / 2}
-                    y={(source.y + target.y) / 2 - 15}
+                    x={(source.x * zoom + target.x * zoom) / 2 + viewportOffset.x}
+                    y={(source.y * zoom + target.y * zoom) / 2 - 15 * zoom + viewportOffset.y}
                     className="text-xs fill-current text-white"
                     textAnchor="middle"
-                    style={{ textShadow: '0 0 3px rgba(0,0,0,0.8)' }}
+                    style={{ textShadow: '0 0 3px rgba(0,0,0,0.8)', fontSize: `${12 * zoom}px` }}
                   >
                     {`${flowRate}%`}
                   </text>
@@ -256,19 +397,12 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
           })}
         </svg>
         
-        {/* Grid lines for better spatial reference */}
-        <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 pointer-events-none">
-          {[...Array(3)].map((_, i) => (
-            <React.Fragment key={`grid-v-${i}`}>
-              <div className="border-r border-secondary/10 h-full"></div>
-              <div className="border-b border-secondary/10 w-full"></div>
-            </React.Fragment>
-          ))}
-        </div>
-        
         {/* Nodes */}
         {filteredNodes.map(node => {
           const nodeMetrics = flowMetrics[node.id];
+          // Apply viewport transformations
+          const nodeX = node.x * zoom + viewportOffset.x;
+          const nodeY = node.y * zoom + viewportOffset.y;
           
           return (
             <div
@@ -277,9 +411,18 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
                 selectedNode === node.id 
                   ? 'border-[#FF3333] shadow-lg shadow-[#FF3333]/20' 
                   : getStatusBorderColor(nodeMetrics.status)
-              } rounded-md bg-background-paper text-white transition-all hover:shadow-md backdrop-blur-sm`}
-              style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
-              onClick={() => setSelectedNode(node.id === selectedNode ? null : node.id)}
+              } rounded-md bg-background-paper text-white transition-all hover:shadow-md backdrop-blur-sm cursor-pointer`}
+              style={{ 
+                left: nodeX, 
+                top: nodeY, 
+                transform: 'translate(-50%, -50%)',
+                fontSize: `${zoom}rem`,
+                padding: `${0.5 * zoom}rem ${1 * zoom}rem`,
+              }}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent dragging when clicking on a node
+                setSelectedNode(node.id === selectedNode ? null : node.id);
+              }}
             >
               <div className="flex items-center">
                 <span className="text-xl mr-2">{nodeTypeIcons[node.type]}</span>
@@ -306,7 +449,7 @@ const EnterpriseDataFlow: React.FC<EnterpriseDataFlowProps> = ({ filter }) => {
         
         {/* Selected Node Details Sidebar */}
         {selectedNode && getSelectedNodeInfo() && (
-          <div className="absolute top-4 right-4 w-64 bg-background-paper rounded-md shadow-lg p-4 border-2 border-[#FF3333]/30">
+          <div className="absolute top-4 right-4 w-64 bg-background-paper rounded-md shadow-lg p-4 border-2 border-[#FF3333]/30 z-20">
             <div className="flex justify-between items-start mb-4">
               <h3 className="font-medium">{getSelectedNodeInfo()?.node.name}</h3>
               <button 
