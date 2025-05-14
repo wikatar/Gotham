@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import PipelineExecutionDetail from './PipelineExecutionDetail'
+import Link from 'next/link'
 
 type Exec = {
   id: string
@@ -25,6 +28,7 @@ export default function PipelineHistory({
   const [execs, setExecs] = useState<Exec[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedExecution, setSelectedExecution] = useState<string | null>(null)
 
   useEffect(() => {
     // Build the query string based on provided props
@@ -60,6 +64,16 @@ export default function PipelineHistory({
         setLoading(false)
       })
   }, [pipelineId, accountId, limit])
+
+  // If an execution is selected, show its details
+  if (selectedExecution) {
+    return (
+      <PipelineExecutionDetail 
+        executionId={selectedExecution} 
+        onBack={() => setSelectedExecution(null)}
+      />
+    )
+  }
 
   if (error) {
     return (
@@ -114,6 +128,26 @@ export default function PipelineHistory({
                 </div>
               </div>
               {e.error && <div className="text-red-600 mt-2 text-sm">Error: {e.error}</div>}
+              
+              <div className="mt-2 flex justify-end space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setSelectedExecution(e.id)}
+                  className="text-sm"
+                >
+                  View Details
+                </Button>
+                <Link href={`/pipeline-executions/${e.id}`} passHref>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Open in New Page
+                  </Button>
+                </Link>
+              </div>
             </Card>
           ))}
         </div>
