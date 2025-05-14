@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/use-toast'
+import Link from 'next/link'
+import { GlobeIcon, LightbulbIcon } from 'lucide-react'
 
 export default function CleanedDataViewer({
   sourceId,
@@ -91,7 +93,18 @@ export default function CleanedDataViewer({
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Cleaned Data</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Cleaned Data</h1>
+        
+        <div className="flex gap-2">
+          <Link href={`/data-analytics/${sourceId}/${pipelineId}`}>
+            <Button variant="default" className="flex items-center gap-2">
+              <GlobeIcon className="h-4 w-4" />
+              Analyze Data
+            </Button>
+          </Link>
+        </div>
+      </div>
 
       <div className="flex gap-2 items-center">
         <Input
