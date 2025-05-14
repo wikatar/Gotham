@@ -44,30 +44,37 @@ const updateModelSchema = z.object({
 /**
  * Register a new model
  */
-export async function registerModel(data: z.infer<typeof registerModelSchema>) {
+export async function registerModel(
+  name: string,
+  version: string,
+  endpoint: string,
+  accountId: string,
+  createdById: string,
+  description?: string,
+  inputSchema?: any,
+  outputSchema?: any,
+  metadata?: any
+) {
   console.log('stub: registerModel');
-  
+
   try {
-    const validatedData = registerModelSchema.parse(data);
-    
-    // Check if user exists and belongs to the account
-    const user = await prisma.user.findFirst({
-      where: {
-        id: validatedData.createdById,
-        accountId: validatedData.accountId,
+    const model = await prisma.model.create({
+      data: {
+        accountId,
+        name,
+        version,
+        endpoint,
+        createdById,
+        description,
+        metadata: {
+          ...(metadata || {}),
+          inputSchema,
+          outputSchema,
+        },
       },
     });
-    
-    if (!user) {
-      return { success: false, error: 'User not found or does not belong to the account' };
-    }
-    
-    // Create the model
-    const model = await prisma.model.create({
-      data: validatedData,
-    });
-    
-    return { success: true, model };
+
+    return model;
   } catch (error) {
     console.error('Error registering model:', error);
     throw error;
@@ -289,4 +296,67 @@ export async function listModels({
     console.error('Error listing models:', error);
     throw error;
   }
-} 
+}
+
+// Get models for an account
+export async function getAccountModels(
+  accountId: string,
+  name?: string,
+  version?: string,
+  limit: number = 100,
+  offset: number = 0
+) {
+  console.log('stub: getAccountModels');
+
+  try {
+    const whereClause: any = { accountId };
+
+    if (name) {
+      whereClause.name = name;
+    }
+
+    if (version) {
+      whereClause.version = version;
+    }
+
+    const models = await prisma.model.findMany({
+      where: whereClause,
+      orderBy: [
+        { name: 'asc' },
+        { version: 'desc' },
+      ],
+      take: limit,
+      skip: offset,
+    });
+
+    return models;
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    throw error;
+  }
+}
+
+// Example usage:
+// 
+// // Create new model version
+// await registerModel(
+//   'Churn Predictor',
+//   'v1.0.0',
+//   'https://yourmodelservice.com/churn/v1',
+//   accountId,
+//   'system',
+//   'Predicts customer churn probability',
+//   { /* input schema */ },
+//   { /* output schema */ }
+// );
+// 
+// When running the model, log execution:
+// await prisma.modelExecution.create({
+//   data: {
+//     modelId: '...',
+//     accountId: '...',
+//     input: { /* real data */ },
+//     output: { /* prediction */ },
+//     status: 'success',
+//   },
+// }); 

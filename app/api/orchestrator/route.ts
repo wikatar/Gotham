@@ -1,57 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
 
-// Import from src/api
-// This is a stub implementation - will be connected to actual orchestrator logic
+const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest) {
-  console.log('stub: POST /api/orchestrator');
-  
-  try {
-    const body = await request.json();
-    
-    // Validate input schema
-    const schema = z.object({
-      accountId: z.string().uuid(),
-      missionId: z.string().uuid().optional(),
-      context: z.record(z.any()).optional(),
-      data: z.any(),
-      rules: z.array(z.record(z.any())).optional()
-    });
-    
-    const result = schema.safeParse(body);
-    
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-    
-    const { accountId, missionId, context, data, rules } = result.data;
-    
-    // This is a stub - in real implementation this would call the orchestrator logic
-    // from src/api/orchestrator
-    
-    // Simulated response
-    const orchestratorResponse = {
-      decision: "APPROVED",
-      confidence: 0.85,
-      actions: [
-        {
-          type: "NOTIFICATION",
-          target: "SLACK",
-          message: "Decision has been approved automatically"
-        }
-      ],
-      reasoning: [
-        "Data meets all validation criteria",
-        "Risk score is within acceptable range",
-        "Pattern matches historical approvals"
-      ],
-      timestamp: new Date().toISOString()
-    };
-    
-    return NextResponse.json(orchestratorResponse);
-  } catch (error) {
-    console.error('Error in orchestrator:', error);
-    return NextResponse.json({ error: 'Orchestrator processing failed' }, { status: 500 });
-  }
+// Dummy orchestrator: på riktigt ska här ligga din regelmotor
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  const { accountId, missionId, input } = body;
+
+  // Här: hämta mission, regler, feedstatus, KPI etc.
+  console.log('Orchestrator received:', { accountId, missionId, input });
+
+  // Dummy return
+  return NextResponse.json({
+    action: 'trigger_model',
+    modelId: 'abc123',
+    triggerReason: 'churn > 20%',
+  });
 } 

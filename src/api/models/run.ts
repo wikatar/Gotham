@@ -278,4 +278,85 @@ export async function listModelExecutions({
     console.error('Error listing model executions:', error);
     throw error;
   }
+}
+
+// Execute a model and log the execution
+export async function executeModel(
+  modelId: string,
+  accountId: string,
+  input: any,
+) {
+  console.log('stub: executeModel');
+
+  try {
+    // Fetch the model
+    const model = await prisma.model.findUnique({
+      where: {
+        id: modelId,
+        accountId, // Ensure model belongs to the account
+      },
+    });
+
+    if (!model) {
+      throw new Error('Model not found or does not belong to the account');
+    }
+
+    // In a real implementation, this would call the model's endpoint
+    // with the input data and get a result
+    console.log(`Executing model: ${model.name}`, { endpoint: model.endpoint, input });
+    
+    // Simulated model execution
+    const output = {
+      prediction: Math.random() > 0.5 ? 'positive' : 'negative',
+      confidence: Math.random(),
+      timestamp: new Date().toISOString()
+    };
+
+    // Log the execution
+    const execution = await prisma.modelExecution.create({
+      data: {
+        modelId,
+        accountId,
+        input,
+        output,
+        status: 'success',
+      },
+    });
+
+    // Also log to the general logging system
+    await prisma.log.create({
+      data: {
+        accountId,
+        type: 'model_execution',
+        action: `Model ${model.name} executed`,
+        resourceId: model.id,
+        resourceType: 'model',
+        metadata: {
+          executionId: execution.id,
+          status: execution.status,
+        },
+      },
+    });
+
+    return { execution, model };
+  } catch (error) {
+    console.error('Error executing model:', error);
+    
+    // Log the error
+    await prisma.log.create({
+      data: {
+        accountId,
+        type: 'model_execution',
+        action: `Model execution failed`,
+        resourceId: modelId,
+        resourceType: 'model',
+        metadata: {
+          error: (error as Error).message,
+          input,
+        },
+      },
+    });
+    
+    throw error;
+  }
 } 
