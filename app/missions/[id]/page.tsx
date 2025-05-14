@@ -9,6 +9,8 @@ import MissionHeader from '../../components/missions/MissionHeader';
 import KpiCard from '../../components/missions/KpiCard';
 import ObjectiveCard from '../../components/missions/ObjectiveCard';
 import ActionItem from '../../components/missions/ActionItem';
+import AiRecommendationTab from '../../components/missions/AiRecommendationTab';
+import AssignedAgentsTab from '../../components/missions/AssignedAgentsTab';
 import { SAMPLE_ENHANCED_MISSIONS } from '../../components/missions/sampleData';
 import { EnhancedMission, MissionAction } from '../../components/missions/types';
 import Link from 'next/link';
@@ -16,7 +18,7 @@ import Link from 'next/link';
 export default function MissionDetailPage() {
   const params = useParams();
   const [mission, setMission] = useState<EnhancedMission | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'kpis' | 'actions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'kpis' | 'actions' | 'recommendations' | 'agents'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   
   // Fetch mission data based on ID
@@ -129,7 +131,7 @@ export default function MissionDetailPage() {
       />
       
       {/* Tabs */}
-      <div className="flex border-b border-secondary/20 mb-6">
+      <div className="flex flex-wrap border-b border-secondary/20 mb-6">
         <button
           className={`px-4 py-2 font-medium text-sm ${
             activeTab === 'overview' 
@@ -169,6 +171,26 @@ export default function MissionDetailPage() {
           onClick={() => setActiveTab('actions')}
         >
           Actions
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'recommendations' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('recommendations')}
+        >
+          AI Recommendations
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'agents' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('agents')}
+        >
+          Agents
         </button>
       </div>
       
@@ -408,6 +430,16 @@ export default function MissionDetailPage() {
             </Card>
           )}
         </div>
+      )}
+
+      {/* AI Recommendations Tab */}
+      {activeTab === 'recommendations' && (
+        <AiRecommendationTab missionId={mission.id} />
+      )}
+
+      {/* Agents Tab */}
+      {activeTab === 'agents' && (
+        <AssignedAgentsTab missionId={mission.id} />
       )}
     </AppLayout>
   );
