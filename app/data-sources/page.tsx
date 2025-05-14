@@ -82,7 +82,18 @@ export default function DataSourcesPage() {
 
         <div className="md:col-span-3">
           {selectedSource ? (
-            <DataTableViewer sourceId={selectedSource} />
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="space-x-2">
+                  <Link href={`/data-cleaner/${selectedSource}`}>
+                    <Button variant="outline" size="sm">
+                      <span className="mr-1">🧼</span> Clean Data
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <DataTableViewer sourceId={selectedSource} />
+            </div>
           ) : (
             <Card className="p-6 text-center">
               <h2 className="text-xl font-bold mb-2">No Data Source Selected</h2>
