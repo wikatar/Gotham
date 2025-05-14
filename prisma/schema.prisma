@@ -28,6 +28,8 @@ model Account {
   feeds          Feed[]
   logs           Log[]
   anomalies      Anomaly[]
+  pipelines      Pipeline[]
+  pipelineSchedules PipelineSchedule[]
 }
 
 // Users
@@ -244,4 +246,46 @@ model Anomaly {
   @@index([severity])
   @@index([resolved])
   @@index([resourceType, resourceId])
+}
+
+// Pipelines
+model Pipeline {
+  id              String   @id @default(uuid())
+  accountId       String
+  name            String
+  missionId       String
+  description     String?
+  category        String?  // geo, finance, hr, etc.
+  nodes           Json     // Serialized pipeline nodes
+  edges           Json?    // Connections between nodes
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+  schedules       PipelineSchedule[]
+
+  @@index([accountId])
+  @@index([missionId])
+  @@index([category])
+}
+
+// Pipeline Schedules
+model PipelineSchedule {
+  id              String   @id @default(uuid())
+  accountId       String
+  pipelineId      String
+  cron            String   // e.g. "0 8 * * *" (every day at 8 AM)
+  active          Boolean  @default(true)
+  lastRunAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+  pipeline        Pipeline  @relation(fields: [pipelineId], references: [id])
+
+  @@index([accountId])
+  @@index([pipelineId])
+  @@index([active])
 } 
