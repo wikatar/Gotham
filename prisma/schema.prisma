@@ -331,6 +331,7 @@ model DataSource {
   // Relations
   account     Account  @relation(fields: [accountId], references: [id])
   rows        DataRow[]
+  cleaningPipelines DataCleaningPipeline[]
   
   @@index([accountId])
 }
@@ -343,6 +344,19 @@ model DataRow {
   
   // Relations
   source    DataSource @relation(fields: [sourceId], references: [id])
+  
+  @@index([sourceId])
+}
+
+model DataCleaningPipeline {
+  id          String   @id @default(cuid())
+  sourceId    String
+  name        String
+  steps       Json
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  dataSource  DataSource @relation(fields: [sourceId], references: [id])
   
   @@index([sourceId])
 } 

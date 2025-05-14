@@ -91,29 +91,32 @@ export default function DataCleaner({ sourceId }: { sourceId: string }) {
       return
     }
 
+    const name = prompt('Name this cleaning pipeline:')
+    if (!name) return
+
     setSavingPipeline(true)
     try {
-      const response = await fetch('/api/data/transformations', {
+      const response = await fetch('/api/data/cleaning/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           sourceId,
+          name,
           steps,
-          name: `Cleaning pipeline for ${sourceId}`,
         }),
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to save pipeline')
+      const data = await response.json()
+      if (response.ok) {
+        toast({
+          title: 'Pipeline saved',
+          description: `Cleaning pipeline "${name}" saved successfully`,
+        })
+      } else {
+        throw new Error(data.error || 'Failed to save pipeline')
       }
-
-      const result = await response.json()
-      toast({
-        title: 'Pipeline saved',
-        description: `Transformation pipeline saved with ID: ${result.id}`,
-      })
     } catch (error) {
       console.error('Error saving pipeline:', error)
       toast({
