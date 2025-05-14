@@ -6,6 +6,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const pipelineId = searchParams.get('pipelineId')
     const accountId = searchParams.get('accountId')
+    const userId = searchParams.get('userId')
+    const missionId = searchParams.get('missionId')
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50
     
     // Build the where clause based on provided parameters
@@ -19,9 +21,35 @@ export async function GET(req: NextRequest) {
       whereClause.accountId = accountId
     }
     
-    // Get executions with filtering
+    if (userId) {
+      whereClause.userId = userId
+    }
+    
+    // If missionId is provided, we need to filter by pipelines in that mission
+    if (missionId) {
+      whereClause.pipeline = {
+        missionId
+      }
+    }
+    
+    // Get executions with filtering, including related pipeline and user
     const executions = await db.pipelineExecution.findMany({
       where: whereClause,
+      include: {
+        pipeline: {
+          select: {
+            name: true,
+            missionId: true
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
       orderBy: { startedAt: 'desc' },
       take: limit,
     })

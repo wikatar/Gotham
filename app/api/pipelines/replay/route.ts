@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/app/lib/db'
 import { executePipeline } from '@/app/lib/pipelineExecutor'
+// Import session handling or use a mock for now
+// import { getServerSession } from "next-auth/next"
+// import { authOptions } from "@/app/lib/auth"
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,8 +22,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Pipeline not found' }, { status: 404 })
     }
 
-    // Execute the pipeline with the provided input
-    const result = await executePipeline(pipelineId, input)
+    // Get user session - in a real app, you would use something like:
+    // const session = await getServerSession(authOptions)
+    // const userId = session?.user?.id
+    
+    // For now, we're using a mock user ID
+    const userId = 'demo-user'
+
+    // Execute the pipeline with the provided input and user information
+    const result = await executePipeline(pipelineId, input, { userId })
 
     return NextResponse.json({ 
       status: 'executed', 

@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+type User = {
+  id: string
+  name: string
+  email: string
+}
+
+type PipelineInfo = {
+  name: string
+  missionId: string
+}
 
 type Execution = {
   id: string
@@ -11,17 +23,42 @@ type Execution = {
   endedAt?: string
   error?: string
   accountId: string
+  userId?: string
+  user?: User
+  pipeline?: PipelineInfo
 }
 
-export default function ExecutionTimeline() {
+type Mission = {
+  id: string
+  name: string
+}
+
+interface ExecutionTimelineProps {
+  initialMissionId?: string
+  initialUserId?: string
+  missions?: Mission[]
+}
+
+export default function ExecutionTimeline({
+  initialMissionId,
+  initialUserId,
+  missions = [] // Mock data if needed
+}: ExecutionTimelineProps) {
   const [executions, setExecutions] = useState<Execution[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [missionId, setMissionId] = useState<string | undefined>(initialMissionId)
+  const [userId, setUserId] = useState<string | undefined>(initialUserId)
 
   useEffect(() => {
     setLoading(true)
-    // Fetch all executions without filtering
-    fetch('/api/pipelines/history')
+    // Build query params based on filters
+    const params = new URLSearchParams()
+    if (missionId) params.append('missionId', missionId)
+    if (userId) params.append('userId', userId)
+    
+    // Fetch executions with filters
+    fetch(`/api/pipelines/history?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error('Failed to fetch execution timeline')
@@ -36,7 +73,7 @@ export default function ExecutionTimeline() {
         setError(err.message)
         setLoading(false)
       })
-  }, [])
+  }, [missionId, userId])
 
   if (error) {
     return (
@@ -48,7 +85,30 @@ export default function ExecutionTimeline() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">📅 System Execution Timeline</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">📅 System Execution Timeline</h1>
+        
+        <div className="flex gap-2">
+          {missions && missions.length > 0 && (
+            <Select
+              value={missionId || ""}
+              onValueChange={(value) => setMissionId(value === "" ? undefined : value)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All missions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All missions</SelectItem>
+                {missions.map((mission) => (
+                  <SelectItem key={mission.id} value={mission.id}>
+                    {mission.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
       
       {loading ? (
         // Skeleton loading state
@@ -71,7 +131,7 @@ export default function ExecutionTimeline() {
             <Card key={execution.id} className="p-3 flex justify-between items-center hover:bg-gray-50">
               <div>
                 <div className="text-sm">
-                  <span className="font-semibold">{execution.pipelineId}</span> was executed
+                  <span className="font-semibold">{execution.pipeline?.name || execution.pipelineId}</span> was executed
                 </div>
                 <div className="text-xs text-gray-500">
                   {new Date(execution.startedAt).toLocaleString()}
@@ -81,6 +141,11 @@ export default function ExecutionTimeline() {
                     </span>
                   }
                 </div>
+                {execution.user && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    By: {execution.user.name || execution.user.email || 'Unknown user'}
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center gap-2">

@@ -25,7 +25,11 @@ async function runPipeline(pipeline: Pipeline, input: any) {
   return result
 }
 
-export async function executePipeline(pipelineId: string, input: any) {
+interface ExecutePipelineOptions {
+  userId?: string;
+}
+
+export async function executePipeline(pipelineId: string, input: any, options: ExecutePipelineOptions = {}) {
   // Get the pipeline
   const pipeline = await db.pipeline.findUnique({
     where: { id: pipelineId }
@@ -35,13 +39,17 @@ export async function executePipeline(pipelineId: string, input: any) {
     throw new Error(`Pipeline with ID ${pipelineId} not found`)
   }
   
-  // Create execution record
+  // Extract options
+  const { userId } = options;
+  
+  // Create execution record with user ID if provided
   const exec = await db.pipelineExecution.create({
     data: {
       pipelineId: pipeline.id,
       input,
       status: 'pending',
       accountId: pipeline.accountId,
+      ...(userId ? { userId } : {}),
     },
   })
 

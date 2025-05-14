@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button'
 import PipelineExecutionDetail from './PipelineExecutionDetail'
 import Link from 'next/link'
 
+type User = {
+  id: string
+  name: string
+  email: string
+}
+
+type PipelineInfo = {
+  name: string
+  missionId: string
+}
+
 type Exec = {
   id: string
   pipelineId: string
@@ -12,17 +23,22 @@ type Exec = {
   startedAt: string
   endedAt?: string
   error?: string
+  userId?: string
+  user?: User
+  pipeline?: PipelineInfo
 }
 
 interface PipelineHistoryProps {
   pipelineId?: string;
   accountId?: string;
+  missionId?: string;
   limit?: number;
 }
 
 export default function PipelineHistory({
   pipelineId,
   accountId = 'demo-account',
+  missionId,
   limit = 10
 }: PipelineHistoryProps) {
   const [execs, setExecs] = useState<Exec[]>([])
@@ -40,6 +56,10 @@ export default function PipelineHistory({
     
     if (accountId) {
       queryParams.append('accountId', accountId)
+    }
+    
+    if (missionId) {
+      queryParams.append('missionId', missionId)
     }
     
     if (limit) {
@@ -63,7 +83,7 @@ export default function PipelineHistory({
         setError(err.message)
         setLoading(false)
       })
-  }, [pipelineId, accountId, limit])
+  }, [pipelineId, accountId, missionId, limit])
 
   // If an execution is selected, show its details
   if (selectedExecution) {
@@ -107,11 +127,18 @@ export default function PipelineHistory({
             <Card key={e.id} className="p-3 border">
               <div className="flex justify-between">
                 <div>
-                  <div className="font-semibold">Pipeline ID: {e.pipelineId}</div>
+                  <div className="font-semibold">
+                    {e.pipeline?.name || `Pipeline ID: ${e.pipelineId}`}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     Start: {new Date(e.startedAt).toLocaleString()}  
                     {e.endedAt && <> | End: {new Date(e.endedAt).toLocaleString()}</>}
                   </div>
+                  {e.user && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      By: {e.user.name || e.user.email || 'Unknown user'}
+                    </div>
+                  )}
                 </div>
                 <div className="text-sm">
                   <span

@@ -48,6 +48,7 @@ model User {
   missions  Mission[]
   models    Model[]
   agents    Agent[]
+  pipelineExecutions PipelineExecution[]
 
   @@index([accountId])
 }
@@ -265,6 +266,7 @@ model Pipeline {
   // Relations
   account         Account   @relation(fields: [accountId], references: [id])
   schedules       PipelineSchedule[]
+  executions      PipelineExecution[]
 
   @@index([accountId])
   @@index([missionId])
@@ -302,12 +304,16 @@ model PipelineExecution {
   output     Json?
   error      String?
   accountId  String
+  userId     String?  // Can be null for system-triggered executions
   
   // Relations
   account    Account @relation(fields: [accountId], references: [id])
+  user       User?   @relation(fields: [userId], references: [id])
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id])
   
   @@index([pipelineId])
   @@index([accountId])
+  @@index([userId])
   @@index([status])
   @@index([startedAt])
 } 
