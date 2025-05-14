@@ -1,0 +1,247 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Accounts - for multi-tenancy
+model Account {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users          User[]
+  entities       Entity[]
+  relations      Relation[]
+  missions       Mission[]
+  models         Model[]
+  modelExecutions ModelExecution[]
+  agents         Agent[]
+  feeds          Feed[]
+  logs           Log[]
+  anomalies      Anomaly[]
+}
+
+// Users
+model User {
+  id        String   @id @default(uuid())
+  accountId String
+  email     String   @unique
+  name      String
+  role      String   // admin, analyst, viewer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  account   Account @relation(fields: [accountId], references: [id])
+  missions  Mission[]
+  models    Model[]
+  agents    Agent[]
+
+  @@index([accountId])
+}
+
+// Entities
+model Entity {
+  id          String   @id @default(uuid())
+  accountId   String
+  name        String
+  type        String   // user, project, team, etc.
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  account           Account   @relation(fields: [accountId], references: [id])
+  sourceRelations   Relation[] @relation("SourceRelation")
+  targetRelations   Relation[] @relation("TargetRelation")
+
+  @@index([accountId])
+  @@index([type])
+}
+
+// Relations between entities
+model Relation {
+  id          String   @id @default(uuid())
+  accountId   String
+  sourceId    String
+  targetId    String
+  type        String   // belongs_to, manages, etc.
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  account     Account   @relation(fields: [accountId], references: [id])
+  source      Entity    @relation("SourceRelation", fields: [sourceId], references: [id])
+  target      Entity    @relation("TargetRelation", fields: [targetId], references: [id])
+
+  @@index([accountId])
+  @@index([sourceId])
+  @@index([targetId])
+  @@index([type])
+}
+
+// Missions (goal-based work)
+model Mission {
+  id          String   @id @default(uuid())
+  accountId   String
+  name        String
+  description String?
+  ownerId     String?
+  status      String   // active, completed, cancelled
+  kpis        Json?    // Array of KPI definitions
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  account     Account   @relation(fields: [accountId], references: [id])
+  owner       User?     @relation(fields: [ownerId], references: [id])
+
+  @@index([accountId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+// Models (AI/ML models)
+model Model {
+  id          String   @id @default(uuid())
+  accountId   String
+  name        String
+  description String?
+  endpoint    String?
+  version     String
+  createdById String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  account         Account          @relation(fields: [accountId], references: [id])
+  createdBy       User             @relation(fields: [createdById], references: [id])
+  modelExecutions ModelExecution[]
+
+  @@index([accountId])
+  @@index([createdById])
+}
+
+// Model Executions
+model ModelExecution {
+  id          String   @id @default(uuid())
+  accountId   String
+  modelId     String
+  input       Json
+  output      Json?
+  status      String   // pending, success, error
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  account     Account   @relation(fields: [accountId], references: [id])
+  model       Model     @relation(fields: [modelId], references: [id])
+
+  @@index([accountId])
+  @@index([modelId])
+  @@index([status])
+}
+
+// Agents (action modules)
+model Agent {
+  id              String   @id @default(uuid())
+  accountId       String
+  name            String
+  description     String?
+  triggerType     String   // event, schedule, manual
+  actionType      String   // slack, email, webhook, etc.
+  parameters      Json?
+  createdById     String
+  status          String   // active, inactive
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+  createdBy       User      @relation(fields: [createdById], references: [id])
+
+  @@index([accountId])
+  @@index([createdById])
+  @@index([triggerType])
+  @@index([actionType])
+  @@index([status])
+}
+
+// Data Feeds
+model Feed {
+  id              String   @id @default(uuid())
+  accountId       String
+  name            String
+  description     String?
+  sourceType      String   // api, database, file, etc.
+  configuration   Json?
+  status          String   // active, inactive, error
+  lastSyncedAt    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([sourceType])
+  @@index([status])
+}
+
+// Logs
+model Log {
+  id              String   @id @default(uuid())
+  accountId       String
+  type            String   // model_execution, agent_execution, etc.
+  action          String
+  resourceId      String?
+  resourceType    String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([type])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+}
+
+// Anomalies
+model Anomaly {
+  id              String   @id @default(uuid())
+  accountId       String
+  type            String   // data, flow, output
+  severity        String   // low, medium, high, critical
+  description     String
+  resourceId      String?
+  resourceType    String?
+  metadata        Json?
+  resolved        Boolean  @default(false)
+  resolvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([type])
+  @@index([severity])
+  @@index([resolved])
+  @@index([resourceType, resourceId])
+} 
