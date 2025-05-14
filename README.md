@@ -21,14 +21,34 @@ A powerful data analytics platform for businesses, inspired by Palantir, offerin
 - **AI Analysis**: LLM integration for contextual understanding and insights.
 - **Ontology Management**: Create relationships between data entities.
 - **Real-time Updates**: Support for both static and streaming data.
+- **Palantir-level Data Traceability**: High-fidelity data ingestion with complete field mapping and lineage tracking.
+
+## Data Import System
+
+### Design Principles
+
+- **🎯 Design target**: Palantir Foundry-level traceability + input lineage
+- **🧬 Data Lineage**: Every data row is linked to its source with complete mapping documentation
+- **🛠 Transformation**: Data cleaning pipelines are built on top of raw data with full traceability
+- **📊 Versioning**: All imported data is versioned for historical analysis and audit
+- **🔍 Accountability**: Full tracking of who imported what data and when
+
+### Features
+
+- **High-fidelity ingestion** with field traceability
+- **Clean separation** between data ingestion and semantic modeling
+- **Extensible architecture** for versioning, type inference, and data quality checks
+- **Full audit logging** of all data import activities
+- **Support for CSV** data with automatic field mapping
 
 ## Tech Stack
 
 - **Frontend**: Next.js (React), TypeScript, TailwindCSS
 - **Visualization**: D3.js, react-simple-maps, Recharts
 - **Backend**: Next.js API routes
-- **Database**: MongoDB with Mongoose ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **AI Integration**: LangChain with OpenAI
+- **Data Processing**: Custom pipeline system for ETL workflows
 
 ## Getting Started
 
@@ -47,7 +67,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Dashboard**: Main overview with KPIs and summary visualizations
 - **Analytics**: Comprehensive data analysis with customizable views
 - **Data Integration**: Connect, transform, and manage data sources 
+- **Data Import**: Import structured data with high-fidelity traceability
 - **Data Modeling**: Define logical models and business rules for your data
+- **Pipeline Builder**: Visual ETL pipeline creation and management
 - **AI Insights**: Predictive analytics, anomaly detection, and AI-powered insights
 - **Templates**: Pre-defined mission workflows and analysis templates
 - **Access Control**: User management, role-based permissions, and audit logging
@@ -59,9 +81,14 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `/app`: Next.js app router
   - `/components`: Reusable UI components
   - `/lib`: Utility functions and API clients
+  - `/api`: Backend API routes
+    - `/pipelines`: Pipeline management API
+    - `/data`: Data import and management API
   - `/models`: Database models and schemas
   - `/data-integrations`: ETL/ELT capabilities
+  - `/data-import`: Data import UI and functionality
   - `/data-modeling`: Business logic and entity management
+  - `/pipelines`: Pipeline builder and management
   - `/analytics`: Data visualization dashboards
   - `/ai-insights`: AI and predictive modeling features
   - `/access-control`: User and permission management
@@ -69,6 +96,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   - `/globe`: Geographic data visualization
   - `/database`: Database explorer
   - `/styles`: Global CSS and theme configuration
+- `/prisma`: Database schema and migrations
+- `/components`: Shared UI components
 - `/public`: Static assets
 
 ## Roadmap for Future Development
