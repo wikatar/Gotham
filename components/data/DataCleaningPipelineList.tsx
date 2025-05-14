@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/use-toast'
+import CleanedDataViewer from './CleanedDataViewer'
+import Link from 'next/link'
 
 export default function DataCleaningPipelineList({ sourceId }: { sourceId: string }) {
   const [pipelines, setPipelines] = useState<any[]>([])
@@ -11,6 +13,7 @@ export default function DataCleaningPipelineList({ sourceId }: { sourceId: strin
   const [preview, setPreview] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [executing, setExecuting] = useState(false)
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -144,11 +147,32 @@ export default function DataCleaningPipelineList({ sourceId }: { sourceId: strin
                   >
                     Save Cleaned Dataset
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSelectedPipelineId(selectedPipelineId === pipe.id ? null : pipe.id)}
+                  >
+                    {selectedPipelineId === pipe.id ? 'Hide Data' : 'Preview'}
+                  </Button>
+                  <Link href={`/data-cleaned/${sourceId}/${pipe.id}`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                    >
+                      Full View
+                    </Button>
+                  </Link>
                 </div>
               </div>
               <div className="text-xs bg-muted p-2 rounded overflow-auto max-h-[100px]">
                 <pre>{JSON.stringify(pipe.steps, null, 2)}</pre>
               </div>
+              
+              {selectedPipelineId === pipe.id && (
+                <div className="mt-4 border-t pt-4">
+                  <CleanedDataViewer sourceId={sourceId} pipelineId={pipe.id} />
+                </div>
+              )}
             </Card>
           ))}
         </div>
