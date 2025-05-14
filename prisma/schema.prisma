@@ -31,6 +31,7 @@ model Account {
   pipelines      Pipeline[]
   pipelineSchedules PipelineSchedule[]
   pipelineExecutions PipelineExecution[]
+  dataSources    DataSource[]
 }
 
 // Users
@@ -316,4 +317,32 @@ model PipelineExecution {
   @@index([userId])
   @@index([status])
   @@index([startedAt])
+}
+
+// Data Sources (imported data)
+model DataSource {
+  id          String   @id @default(cuid())
+  name        String
+  mapping     Json
+  importedAt  DateTime
+  recordCount Int
+  accountId   String
+  
+  // Relations
+  account     Account  @relation(fields: [accountId], references: [id])
+  rows        DataRow[]
+  
+  @@index([accountId])
+}
+
+model DataRow {
+  id        String   @id @default(cuid())
+  sourceId  String
+  row       Json
+  createdAt DateTime @default(now())
+  
+  // Relations
+  source    DataSource @relation(fields: [sourceId], references: [id])
+  
+  @@index([sourceId])
 } 
