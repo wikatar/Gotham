@@ -2,10 +2,12 @@
 
 import { useParams } from 'next/navigation'
 import DataCleaner from '@/components/data/DataCleaner'
+import DataCleaningPipelineList from '@/components/data/DataCleaningPipelineList'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function DataCleanerPage() {
   const params = useParams()
@@ -55,7 +57,21 @@ export default function DataCleanerPage() {
               </p>
             </Card>
           </div>
-          <DataCleaner sourceId={sourceId} />
+          
+          <Tabs defaultValue="build" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="build">Build Pipeline</TabsTrigger>
+              <TabsTrigger value="list">Saved Pipelines</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="build" className="space-y-6">
+              <DataCleaner sourceId={sourceId} />
+            </TabsContent>
+            
+            <TabsContent value="list" className="space-y-6">
+              <DataCleaningPipelineList sourceId={sourceId} />
+            </TabsContent>
+          </Tabs>
         </>
       ) : (
         <Card className="p-6 text-center">
