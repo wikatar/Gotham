@@ -89,16 +89,33 @@ const getRelatedConnections = (region) => {
   );
 };
 
-export default function CDNGlobe() {
+// Define the interface for the component props
+interface CDNGlobeProps {
+  initialCategory?: string | null;
+}
+
+export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
   const [selectedPoint, setSelectedPoint] = useState(null)
   const [showDetailPanel, setShowDetailPanel] = useState(false)
   const [hoverPoint, setHoverPoint] = useState(null)
-  const [activeCategory, setActiveCategory] = useState(null)
+  const [activeCategory, setActiveCategory] = useState(initialCategory)
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [webGLSupported, setWebGLSupported] = useState(true)
   const [showFallback, setShowFallback] = useState(false)
   const iframeRef = useRef(null)
-  const tooltipRef = useRef(null)
+  
+  // Update when initialCategory changes
+  useEffect(() => {
+    setActiveCategory(initialCategory)
+    
+    // Send message to iframe to update category filter
+    if (!showFallback && iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'updateCategory',
+        category: initialCategory
+      }, '*')
+    }
+  }, [initialCategory, showFallback])
   
   // Check WebGL support when component mounts
   useEffect(() => {
@@ -180,12 +197,7 @@ export default function CDNGlobe() {
         
         if (point) {
           setHoverPoint(point)
-          
-          // Position tooltip based on mouse position
-          if (tooltipRef.current && event.data.x && event.data.y) {
-            tooltipRef.current.style.left = `${event.data.x}px`
-            tooltipRef.current.style.top = `${event.data.y}px`
-          }
+          // We're no longer positioning a tooltip since we now show a fixed-position info panel
         } else {
           setHoverPoint(null)
         }
@@ -233,7 +245,7 @@ export default function CDNGlobe() {
   </div>
   <script>
     // Globe data
-    const globeData = ${JSON.stringify(globeData)};
+    const globeData = ${JSON.stringify(globeData).replace(/\\/g, '\\\\').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')};
     
     // Initialize globe
     let currentCategory = null;
@@ -266,12 +278,13 @@ export default function CDNGlobe() {
           })
           .onPointHover((point, prevPoint) => {
             if (point) {
+              const evt = event || window.event;
               window.parent.postMessage({
                 type: 'pointHover',
                 lat: point.lat,
                 lng: point.lng,
-                x: event.clientX,
-                y: event.clientY
+                x: evt ? evt.clientX : 0,
+                y: evt ? evt.clientY : 0
               }, '*');
             } else {
               window.parent.postMessage({
@@ -360,37 +373,6 @@ export default function CDNGlobe() {
   
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-        {/* Category Filters */}
-        <div className="flex flex-wrap space-x-2">
-          <Button
-            variant={activeCategory === null ? 'primary' : 'secondary'}
-            onClick={() => handleCategoryToggle(null)}
-          >
-            All
-          </Button>
-          {categories.map(category => (
-            <Button
-              key={category}
-              variant={activeCategory === category ? 'primary' : 'secondary'}
-              onClick={() => handleCategoryToggle(category)}
-              className="capitalize"
-            >
-              {globeData.categoryInfo?.[category]?.name || category}
-            </Button>
-          ))}
-        </div>
-        
-        {showFallback && (
-          <div className="text-amber-500 text-sm flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            Using 2D Map (3D visualization not supported in this browser)
-          </div>
-        )}
-      </div>
-      
       {/* Main Visualization */}
       <Card title="Global Analytics" className="flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 relative">
@@ -441,22 +423,14 @@ export default function CDNGlobe() {
             </div>
           )}
           
-          {/* Hover Tooltip */}
-          {hoverPoint && (
-            <div 
-              ref={tooltipRef}
-              className="absolute pointer-events-none z-20 bg-background-elevated/90 backdrop-blur-sm rounded-md shadow-lg p-3 transform -translate-x-1/2 -translate-y-[110%] border border-[#FF3333]/30 text-white"
-              style={{
-                maxWidth: '280px',
-                transition: 'opacity 0.15s ease'
-              }}
-            >
-              <div className="font-medium text-base flex items-center mb-1 gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCategoryColor(hoverPoint.category) }}></div>
-                {hoverPoint.region}
+          {/* Hover Info Panel - Using the compact format for hover state */}
+          {hoverPoint && !selectedPoint && (
+            <div className="absolute bottom-4 left-4 bg-background-elevated/90 p-4 rounded-md text-sm backdrop-blur-sm shadow-lg border border-[#FF3333]/30 max-w-xs animate-fade-in transition-all duration-300 pointer-events-none">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-medium text-base">{hoverPoint.region}</h3>
               </div>
               
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-2">
+              <div className="grid grid-cols-2 gap-y-2 mb-2">
                 <div className="text-text-secondary">Category:</div>
                 <div className="font-medium capitalize">
                   {globeData.categoryInfo?.[hoverPoint.category]?.name || hoverPoint.category}
@@ -539,7 +513,7 @@ export default function CDNGlobe() {
           
           {/* Detailed Information Panel */}
           {selectedPoint && showDetailPanel && (
-            <div className="absolute top-0 left-0 bottom-0 bg-background-paper/95 backdrop-blur-md border-r border-secondary/30 w-80 shadow-xl overflow-y-auto animate-slide-in transition-all duration-300 z-10">
+            <div className="absolute top-0 left-0 h-[calc(100vh-300px)] bg-background-paper/95 backdrop-blur-md border-r border-secondary/30 w-72 shadow-xl overflow-y-auto animate-slide-in transition-all duration-300 z-10">
               <div className="sticky top-0 bg-background-paper/90 backdrop-blur-md p-4 border-b border-secondary/30 z-10">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-medium">{selectedPoint.region}</h2>

@@ -90,26 +90,26 @@ export default function GlobePage() {
               size="sm"
               onClick={() => setActiveFilter('churn')}
             >
-              Churn Indicators
+              Churn Risk
             </Button>
             <Button 
               variant={activeFilter === 'service' ? 'primary' : 'secondary'} 
               size="sm"
               onClick={() => setActiveFilter('service')}
             >
-              Service Metrics
+              Service Quality
             </Button>
             <Button 
-              variant={activeFilter === 'warehouse' ? 'primary' : 'secondary'} 
+              variant={activeFilter === 'Warehouse' ? 'primary' : 'secondary'} 
               size="sm"
-              onClick={() => setActiveFilter('warehouse')}
+              onClick={() => setActiveFilter('Warehouse')}
             >
-              Warehouse Data
+              Warehouse
             </Button>
             <Button 
-              variant={activeFilter === 'office' ? 'primary' : 'secondary'} 
+              variant={activeFilter === 'Office' ? 'primary' : 'secondary'} 
               size="sm"
-              onClick={() => setActiveFilter('office')}
+              onClick={() => setActiveFilter('Office')}
             >
               Office Locations
             </Button>
@@ -120,7 +120,7 @@ export default function GlobePage() {
       {/* Content based on active tab */}
       {activeTab === 'globe' && (
         <div className="h-[calc(100vh-280px)]">
-          <CDNGlobe />
+          <CDNGlobe initialCategory={activeFilter} />
         </div>
       )}
       
