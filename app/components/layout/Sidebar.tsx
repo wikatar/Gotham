@@ -138,6 +138,13 @@ export default function Sidebar() {
             collapsed={collapsed}
           />
           <SidebarItem 
+            icon="⚙️" 
+            label="ETL Manager" 
+            href="/etl-manager"
+            active={pathname.startsWith('/etl-manager')}
+            collapsed={collapsed}
+          />
+          <SidebarItem 
             icon="🤖" 
             label="Agent Center" 
             href="/agent-center"

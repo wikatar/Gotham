@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { TARSProvider } from './lib/tarsContext'
 import { MissionProvider } from './lib/missionContext'
+// Import server initialization code
+import './lib/server-init'
 
 export const metadata: Metadata = {
   title: 'Monolith Analytics',
