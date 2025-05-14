@@ -15,15 +15,15 @@ export default function GlobePage() {
   
   return (
     <AppLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold mb-2">Global View</h1>
-        <p className="text-text-secondary">Enterprise-wide data flow visualization and monitoring</p>
+      <div className="mb-2">
+        <h1 className="text-xl font-semibold mb-1">Global View</h1>
+        <p className="text-text-secondary text-sm">Enterprise-wide data flow visualization and monitoring</p>
       </div>
       
       {/* Tabs */}
-      <div className="flex border-b border-secondary/20 mb-6">
+      <div className="flex border-b border-secondary/20 mb-3">
         <button
-          className={`px-4 py-2 font-medium text-sm ${
+          className={`px-3 py-1.5 font-medium text-xs ${
             activeTab === 'globe' 
               ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
@@ -33,7 +33,7 @@ export default function GlobePage() {
           Global Map
         </button>
         <button
-          className={`px-4 py-2 font-medium text-sm ${
+          className={`px-3 py-1.5 font-medium text-xs ${
             activeTab === 'flows' 
               ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
@@ -43,7 +43,7 @@ export default function GlobePage() {
           Data Flows
         </button>
         <button
-          className={`px-4 py-2 font-medium text-sm ${
+          className={`px-3 py-1.5 font-medium text-xs ${
             activeTab === 'anomalies' 
               ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
@@ -53,7 +53,7 @@ export default function GlobePage() {
           Anomaly Detection
         </button>
         <button
-          className={`px-4 py-2 font-medium text-sm ${
+          className={`px-3 py-1.5 font-medium text-xs ${
             activeTab === 'events' 
               ? 'border-b-2 border-[#FF3333] text-[#FF3333]'
               : 'text-text-secondary hover:text-text-primary'
@@ -66,14 +66,13 @@ export default function GlobePage() {
       
       {/* Filters */}
       {(activeTab === 'globe' || activeTab === 'flows') && (
-        <Card 
-          title="Data Filters"
-          className="mb-6"
-        >
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-3 bg-background-elevated p-2 rounded border border-secondary/20">
+          <div className="text-xs font-medium mb-1.5 text-text-secondary">Data Filters</div>
+          <div className="flex flex-wrap gap-1.5">
             <Button 
               variant={activeFilter === null ? 'primary' : 'secondary'} 
               size="sm"
+              className="text-xs py-1 px-2"
               onClick={() => setActiveFilter(null)}
             >
               All Data
@@ -81,6 +80,7 @@ export default function GlobePage() {
             <Button 
               variant={activeFilter === 'feedback' ? 'primary' : 'secondary'} 
               size="sm"
+              className="text-xs py-1 px-2"
               onClick={() => setActiveFilter('feedback')}
             >
               Customer Feedback
@@ -88,6 +88,7 @@ export default function GlobePage() {
             <Button 
               variant={activeFilter === 'churn' ? 'primary' : 'secondary'} 
               size="sm"
+              className="text-xs py-1 px-2"
               onClick={() => setActiveFilter('churn')}
             >
               Churn Risk
@@ -95,6 +96,7 @@ export default function GlobePage() {
             <Button 
               variant={activeFilter === 'service' ? 'primary' : 'secondary'} 
               size="sm"
+              className="text-xs py-1 px-2"
               onClick={() => setActiveFilter('service')}
             >
               Service Quality
@@ -102,6 +104,7 @@ export default function GlobePage() {
             <Button 
               variant={activeFilter === 'Warehouse' ? 'primary' : 'secondary'} 
               size="sm"
+              className="text-xs py-1 px-2"
               onClick={() => setActiveFilter('Warehouse')}
             >
               Warehouse
@@ -109,17 +112,18 @@ export default function GlobePage() {
             <Button 
               variant={activeFilter === 'Office' ? 'primary' : 'secondary'} 
               size="sm"
+              className="text-xs py-1 px-2"
               onClick={() => setActiveFilter('Office')}
             >
               Office Locations
             </Button>
           </div>
-        </Card>
+        </div>
       )}
       
       {/* Content based on active tab */}
       {activeTab === 'globe' && (
-        <div className="h-[calc(100vh-280px)]">
+        <div className="h-[calc(100vh-300px)]">
           <CDNGlobe initialCategory={activeFilter} />
         </div>
       )}
@@ -136,23 +140,27 @@ export default function GlobePage() {
         <GlobalEvents filter={activeFilter} />
       )}
       
-      {/* Stats summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-        <Card title="Active Datapoints">
-          <div className="text-3xl font-bold">1,247</div>
-        </Card>
+      {/* Stats summary - Made much more compact */}
+      <div className="grid grid-cols-4 gap-2 mt-2 text-center">
+        <div className="bg-background-elevated p-1.5 rounded text-xs border border-secondary/20">
+          <div className="text-text-secondary mb-0.5">Datapoints</div>
+          <div className="text-lg font-semibold">1,247</div>
+        </div>
         
-        <Card title="Data Flow Rate">
-          <div className="text-3xl font-bold text-green-500">324 GB/hr</div>
-        </Card>
+        <div className="bg-background-elevated p-1.5 rounded text-xs border border-secondary/20">
+          <div className="text-text-secondary mb-0.5">Flow Rate</div>
+          <div className="text-lg font-semibold text-green-500">324 GB/hr</div>
+        </div>
         
-        <Card title="Active Connections">
-          <div className="text-3xl font-bold text-blue-500">78</div>
-        </Card>
+        <div className="bg-background-elevated p-1.5 rounded text-xs border border-secondary/20">
+          <div className="text-text-secondary mb-0.5">Connections</div>
+          <div className="text-lg font-semibold text-blue-500">78</div>
+        </div>
         
-        <Card title="Anomalies Detected">
-          <div className="text-3xl font-bold text-yellow-500">12</div>
-        </Card>
+        <div className="bg-background-elevated p-1.5 rounded text-xs border border-secondary/20">
+          <div className="text-text-secondary mb-0.5">Anomalies</div>
+          <div className="text-lg font-semibold text-yellow-500">12</div>
+        </div>
       </div>
     </AppLayout>
   )

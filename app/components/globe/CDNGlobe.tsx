@@ -12,8 +12,8 @@ import globeData from '../../data/globeData.json'
 const WorldMapFallback = dynamic(() => import('./WorldMapVisualization'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[calc(100vh-300px)] flex items-center justify-center">
-      <div className="text-text-secondary">Loading Map Visualization...</div>
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="text-text-secondary text-sm">Loading Map...</div>
     </div>
   )
 })
@@ -320,7 +320,7 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                      'rgba(156, 39, 176, 0.8)';
                      
         return {
-          ...point,
+        ...point,
           color: color,
           radius: point.value / 80, // Scale based on value
         };
@@ -374,7 +374,7 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Main Visualization */}
-      <Card title="Global Analytics" className="flex-1 overflow-hidden flex flex-col">
+      <Card className="flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 relative">
           {!showFallback ? (
             <>
@@ -425,12 +425,12 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
           
           {/* Hover Info Panel - Using the compact format for hover state */}
           {hoverPoint && !selectedPoint && (
-            <div className="absolute bottom-4 left-4 bg-background-elevated/90 p-4 rounded-md text-sm backdrop-blur-sm shadow-lg border border-[#FF3333]/30 max-w-xs animate-fade-in transition-all duration-300 pointer-events-none">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-base">{hoverPoint.region}</h3>
+            <div className="absolute bottom-24 left-6 bg-background-elevated/90 p-3 rounded-md text-xs backdrop-blur-sm shadow-lg border border-[#FF3333]/30 max-w-[260px] animate-fade-in transition-all duration-300 pointer-events-none">
+              <div className="flex justify-between items-start mb-1.5">
+                <h3 className="font-medium text-sm">{hoverPoint.region}</h3>
               </div>
               
-              <div className="grid grid-cols-2 gap-y-2 mb-2">
+              <div className="grid grid-cols-2 gap-y-1.5 mb-1.5">
                 <div className="text-text-secondary">Category:</div>
                 <div className="font-medium capitalize">
                   {globeData.categoryInfo?.[hoverPoint.category]?.name || hoverPoint.category}
@@ -454,26 +454,26 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
           )}
           
           {/* Legend */}
-          <div className="absolute bottom-4 right-4 bg-background-elevated/80 p-3 rounded-md text-sm backdrop-blur-sm shadow-lg border border-secondary/30">
-            <div className="font-medium mb-2">Legend</div>
+          <div className="absolute bottom-16 right-6 bg-background-elevated/80 p-2.5 rounded-md text-xs backdrop-blur-sm shadow-lg border border-secondary/30">
+            <div className="font-medium mb-1.5">Legend</div>
             <div className="grid grid-cols-1 gap-1">
               {categories.map(category => (
                 <div key={category} className="flex items-center">
                   <div 
-                    className="w-3 h-3 rounded-full mr-2" 
+                    className="w-2.5 h-2.5 rounded-full mr-1.5" 
                     style={{ backgroundColor: getCategoryColor(category) }}
                   ></div>
                   <span>{globeData.categoryInfo?.[category]?.name || category}</span>
-                </div>
+              </div>
               ))}
             </div>
           </div>
           
-          {/* Compact Selected Point Info */}
+          {/* Compact Selected Point Info - Only show when selected but detail panel not open */}
           {selectedPoint && !showDetailPanel && (
-            <div className="absolute bottom-4 left-4 bg-background-elevated/90 p-4 rounded-md text-sm backdrop-blur-sm shadow-lg border border-[#FF3333]/30 max-w-xs animate-fade-in transition-all duration-300">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-base">{selectedPoint.region}</h3>
+            <div className="absolute bottom-16 left-6 bg-background-elevated/90 p-3 rounded-md text-xs backdrop-blur-sm shadow-lg border border-[#FF3333]/30 max-w-[260px] animate-fade-in transition-all duration-300">
+              <div className="flex justify-between items-start mb-1.5">
+                <h3 className="font-medium text-sm">{selectedPoint.region}</h3>
                 <button 
                   onClick={() => setSelectedPoint(null)}
                   className="text-text-secondary hover:text-text-primary"
@@ -482,7 +482,7 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                 </button>
               </div>
               
-              <div className="grid grid-cols-2 gap-y-2 mb-3">
+              <div className="grid grid-cols-2 gap-y-1.5 mb-2">
                 <div className="text-text-secondary">Category:</div>
                 <div className="font-medium capitalize">
                   {globeData.categoryInfo?.[selectedPoint.category]?.name || selectedPoint.category}
@@ -503,7 +503,7 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
               
               <Button 
                 variant="primary"
-                className="w-full mt-2"
+                className="w-full mt-1.5 text-xs py-1"
                 onClick={() => setShowDetailPanel(true)}
               >
                 View Details
@@ -513,10 +513,10 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
           
           {/* Detailed Information Panel */}
           {selectedPoint && showDetailPanel && (
-            <div className="absolute top-0 left-0 h-[calc(100vh-300px)] bg-background-paper/95 backdrop-blur-md border-r border-secondary/30 w-72 shadow-xl overflow-y-auto animate-slide-in transition-all duration-300 z-10">
-              <div className="sticky top-0 bg-background-paper/90 backdrop-blur-md p-4 border-b border-secondary/30 z-10">
+            <div className="absolute top-6 left-6 bottom-16 max-h-[calc(100vh-320px)] bg-background-paper/95 backdrop-blur-md border border-secondary/30 w-64 shadow-xl overflow-y-auto animate-slide-in transition-all duration-300 z-10 rounded-md">
+              <div className="sticky top-0 bg-background-paper/90 backdrop-blur-md p-3 border-b border-secondary/30 z-10">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-medium">{selectedPoint.region}</h2>
+                  <h2 className="text-base font-medium">{selectedPoint.region}</h2>
                   <button 
                     onClick={() => {
                       setShowDetailPanel(false)
@@ -527,26 +527,26 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                   </button>
                 </div>
                 
-                <div className="text-sm text-text-secondary">
+                <div className="text-xs text-text-secondary">
                   {globeData.regionInfo?.[selectedPoint.region]?.details || 'Regional data overview'}
                 </div>
               </div>
               
-              <div className="p-4">
+              <div className="p-3">
                 {/* Key Metrics */}
-                <div className="mb-6">
-                  <h3 className="text-sm uppercase text-text-secondary mb-2 font-medium tracking-wider">Key Metrics</h3>
+                <div className="mb-4">
+                  <h3 className="text-xs uppercase text-text-secondary mb-1.5 font-medium tracking-wider">Key Metrics</h3>
                   
-                  <div className="bg-background-elevated rounded-md p-3 mb-3 border border-secondary/30">
+                  <div className="bg-background-elevated rounded-md p-2.5 mb-2 border border-secondary/30">
                     <div className="flex items-center">
                       <div 
-                        className="w-4 h-4 rounded-full mr-2" 
+                        className="w-3 h-3 rounded-full mr-1.5" 
                         style={{ backgroundColor: getCategoryColor(selectedPoint.category) }}
                       ></div>
-                      <div className="font-medium">
+                      <div className="font-medium text-xs">
                         {globeData.categoryInfo?.[selectedPoint.category]?.name || selectedPoint.category}
                       </div>
-                      <div className={`ml-auto font-medium flex items-center ${getTrendClass(selectedPoint.trend)}`}>
+                      <div className={`ml-auto font-medium flex items-center text-xs ${getTrendClass(selectedPoint.trend)}`}>
                         {getTrendIcon(selectedPoint.trend)} {selectedPoint.value}
                         {globeData.categoryInfo?.[selectedPoint.category]?.unit ? 
                           ` ${globeData.categoryInfo[selectedPoint.category].unit}` : ''}
@@ -568,16 +568,16 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                       if (!point) return null
                       
                       return (
-                        <div key={cat} className="bg-background-elevated rounded-md p-3 mb-3 border border-secondary/30">
+                        <div key={cat} className="bg-background-elevated rounded-md p-2.5 mb-2 border border-secondary/30">
                           <div className="flex items-center">
                             <div 
-                              className="w-4 h-4 rounded-full mr-2" 
+                              className="w-3 h-3 rounded-full mr-1.5" 
                               style={{ backgroundColor: getCategoryColor(cat) }}
                             ></div>
-                            <div className="font-medium">
+                            <div className="font-medium text-xs">
                               {globeData.categoryInfo?.[cat]?.name || cat}
                             </div>
-                            <div className={`ml-auto font-medium flex items-center ${getTrendClass(point.trend)}`}>
+                            <div className={`ml-auto font-medium flex items-center text-xs ${getTrendClass(point.trend)}`}>
                               {getTrendIcon(point.trend)} {point.value}
                               {globeData.categoryInfo?.[cat]?.unit ? 
                                 ` ${globeData.categoryInfo[cat].unit}` : ''}
@@ -593,12 +593,12 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                 </div>
                 
                 {/* Historical Data */}
-                <div className="mb-6">
-                  <h3 className="text-sm uppercase text-text-secondary mb-2 font-medium tracking-wider">Historical Trends</h3>
+                <div className="mb-4">
+                  <h3 className="text-xs uppercase text-text-secondary mb-1.5 font-medium tracking-wider">Historical Trends</h3>
                   
                   {getCategoryMetrics(selectedPoint.category, selectedPoint.region).length > 0 ? (
-                    <div className="bg-background-elevated rounded-md p-3 border border-secondary/30">
-                      <div className="h-32 relative">
+                    <div className="bg-background-elevated rounded-md p-2.5 border border-secondary/30">
+                      <div className="h-16 relative">
                         {/* Simple trend visualization */}
                         <div className="flex items-end h-full relative">
                           {getCategoryMetrics(selectedPoint.category, selectedPoint.region).map((point, i, arr) => {
@@ -628,7 +628,7 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                         </div>
                       </div>
                       
-                      <div className="text-xs text-text-secondary mt-2 flex justify-between">
+                      <div className="text-xs text-text-secondary mt-1.5 flex justify-between">
                         <span>
                           {getCategoryMetrics(selectedPoint.category, selectedPoint.region)[0]?.date || ''}
                         </span>
@@ -638,25 +638,25 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-text-secondary">No historical data available</div>
+                    <div className="text-xs text-text-secondary">No historical data available</div>
                   )}
                 </div>
                 
                 {/* Connections */}
                 {getRelatedConnections(selectedPoint.region).length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-sm uppercase text-text-secondary mb-2 font-medium tracking-wider">Connections</h3>
+                  <div className="mb-4">
+                    <h3 className="text-xs uppercase text-text-secondary mb-1.5 font-medium tracking-wider">Connections</h3>
                     
                     {getRelatedConnections(selectedPoint.region).map((conn, i) => (
-                      <div key={i} className="bg-background-elevated rounded-md p-3 mb-2 border border-secondary/30">
-                        <div className="flex items-center">
+                      <div key={i} className="bg-background-elevated rounded-md p-2.5 mb-1.5 border border-secondary/30">
+                        <div className="flex items-center text-xs">
                           <div className="font-medium">
                             {conn.source === selectedPoint.region ? conn.target : conn.source}
                           </div>
-                          <div className="text-text-secondary mx-2">
+                          <div className="text-text-secondary mx-1.5">
                             {conn.source === selectedPoint.region ? '→' : '←'}
                           </div>
-                          <div className="text-xs capitalize bg-background-paper px-2 py-0.5 rounded">
+                          <div className="text-xs capitalize bg-background-paper px-1.5 py-0.5 rounded">
                             {conn.type}
                           </div>
                           <div className="ml-auto font-medium">
@@ -669,20 +669,22 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                 )}
                 
                 {/* Actions */}
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-2 gap-2 mb-4">
                   <Button 
                     variant="primary"
-                    onClick={() => {
-                      if (selectedPoint.region && globeData.regionInfo[selectedPoint.region]?.dashboardId) {
-                        console.log(`Navigate to dashboard: ${globeData.regionInfo[selectedPoint.region].dashboardId}`)
-                      }
-                    }}
-                  >
-                    View Dashboard
-                  </Button>
+                    className="text-xs py-1.5"
+                onClick={() => {
+                  if (selectedPoint.region && globeData.regionInfo[selectedPoint.region]?.dashboardId) {
+                    console.log(`Navigate to dashboard: ${globeData.regionInfo[selectedPoint.region].dashboardId}`)
+                  }
+                }}
+              >
+                View Dashboard
+              </Button>
                   
                   <Button 
                     variant="secondary"
+                    className="text-xs py-1.5"
                     onClick={() => {
                       console.log(`Generate report for ${selectedPoint.region}`)
                     }}
@@ -692,7 +694,7 @@ export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {
                   
                   <Button 
                     variant="secondary"
-                    className="col-span-2"
+                    className="col-span-2 text-xs py-1.5"
                     onClick={() => {
                       console.log(`Deep dive into ${selectedPoint.region} data`)
                     }}
