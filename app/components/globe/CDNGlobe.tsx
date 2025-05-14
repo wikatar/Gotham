@@ -58,7 +58,7 @@ const getCategoryMetrics = (category, region) => {
     day.points.forEach(point => {
       if (point.region === region && point.category === category) {
         historyData.push({
-          date: new Date(day.date).toLocaleDateString(),
+          date: formatDate(new Date(day.date)),
           value: point.value
         });
       }
@@ -72,7 +72,7 @@ const getCategoryMetrics = (category, region) => {
   
   if (currentPoint) {
     historyData.push({
-      date: new Date(currentPoint.timestamp).toLocaleDateString(),
+      date: formatDate(new Date(currentPoint.timestamp)),
       value: currentPoint.value
     });
   }
@@ -92,6 +92,13 @@ const getRelatedConnections = (region) => {
 // Define the interface for the component props
 interface CDNGlobeProps {
   initialCategory?: string | null;
+}
+
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default function CDNGlobe({ initialCategory = null }: CDNGlobeProps) {

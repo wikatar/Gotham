@@ -16,6 +16,12 @@ interface AIAssistantProps {
   onClose: () => void
 }
 
+function formatTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -153,7 +159,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
           >
             <div className="text-sm">{message.content}</div>
             <div className="text-xs text-text-secondary mt-1">
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {formatTime(message.timestamp)}
             </div>
           </div>
         ))}

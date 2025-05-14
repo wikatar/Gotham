@@ -6,6 +6,12 @@ import { useTARS } from '../../lib/tarsContext'
 import TARSDraggable from './TARSDraggable'
 import { TARSMessage, TARSConversation, getOrCreateCurrentConversation, createConversation, addMessageToConversation, getAllConversations } from '../../lib/tarsChatHistory'
 
+function formatTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 export default function EnhancedTARSAssistant() {
   const { 
     isExpanded, 
@@ -233,7 +239,7 @@ export default function EnhancedTARSAssistant() {
               onClick={toggleTARS} 
               className="text-text-secondary hover:text-text-primary no-drag"
             >
-              {isExpanded ? '✕' : '↗'}
+              {isExpanded ? '✕' : ''}
             </button>
           </div>
         </div>
@@ -280,7 +286,7 @@ export default function EnhancedTARSAssistant() {
                 >
                   <div className="text-sm">{message.content}</div>
                   <div className="text-xs text-text-secondary mt-1">
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatTime(new Date(message.timestamp))}
                   </div>
                 </div>
               ))}

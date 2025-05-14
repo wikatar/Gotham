@@ -15,6 +15,13 @@ import { SAMPLE_ENHANCED_MISSIONS } from '../../components/missions/sampleData';
 import { EnhancedMission, MissionAction } from '../../components/missions/types';
 import Link from 'next/link';
 
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function MissionDetailPage() {
   const params = useParams();
   const [mission, setMission] = useState<EnhancedMission | null>(null);
@@ -254,7 +261,7 @@ export default function MissionDetailPage() {
                         <div className="flex justify-between mt-1">
                           <div className="text-xs text-text-secondary">{action.assignedTo}</div>
                           {action.scheduledFor && (
-                            <div className="text-xs">Due: {new Date(action.scheduledFor).toLocaleDateString()}</div>
+                            <div className="text-xs">Due: {formatDate(new Date(action.scheduledFor))}</div>
                           )}
                         </div>
                       </div>
