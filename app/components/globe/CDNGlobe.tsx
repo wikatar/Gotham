@@ -37,13 +37,68 @@ const getTrendClass = (trend) => {
   }
 }
 
+const getCategoryColor = (category) => {
+  if (!category) return '#ffffff';
+  if (globeData.categoryInfo?.[category]?.color) {
+    return globeData.categoryInfo[category].color;
+  }
+  switch(category) {
+    case 'feedback': return '#4CAF50';
+    case 'churn': return '#F44336';
+    case 'service': return '#2196F3';
+    default: return '#9c27b0';
+  }
+}
+
+const getCategoryMetrics = (category, region) => {
+  // Get historical data for this region and category if available
+  const historyData = [];
+  
+  globeData.historical.forEach(day => {
+    day.points.forEach(point => {
+      if (point.region === region && point.category === category) {
+        historyData.push({
+          date: new Date(day.date).toLocaleDateString(),
+          value: point.value
+        });
+      }
+    });
+  });
+  
+  // Get current point
+  const currentPoint = globeData.points.find(
+    p => p.region === region && p.category === category
+  );
+  
+  if (currentPoint) {
+    historyData.push({
+      date: new Date(currentPoint.timestamp).toLocaleDateString(),
+      value: currentPoint.value
+    });
+  }
+  
+  // Sort by date
+  historyData.sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  return historyData;
+};
+
+const getRelatedConnections = (region) => {
+  return globeData.connections.filter(
+    conn => conn.source === region || conn.target === region
+  );
+};
+
 export default function CDNGlobe() {
   const [selectedPoint, setSelectedPoint] = useState(null)
+  const [showDetailPanel, setShowDetailPanel] = useState(false)
+  const [hoverPoint, setHoverPoint] = useState(null)
   const [activeCategory, setActiveCategory] = useState(null)
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [webGLSupported, setWebGLSupported] = useState(true)
   const [showFallback, setShowFallback] = useState(false)
   const iframeRef = useRef(null)
+  const tooltipRef = useRef(null)
   
   // Check WebGL support when component mounts
   useEffect(() => {
@@ -115,7 +170,27 @@ export default function CDNGlobe() {
         
         if (point) {
           setSelectedPoint(point)
+          setShowDetailPanel(true)
         }
+      } else if (event.data.type === 'pointHover') {
+        // Find the point data by coordinates
+        const point = globeData.points.find(
+          p => p.lat === event.data.lat && p.lng === event.data.lng
+        )
+        
+        if (point) {
+          setHoverPoint(point)
+          
+          // Position tooltip based on mouse position
+          if (tooltipRef.current && event.data.x && event.data.y) {
+            tooltipRef.current.style.left = `${event.data.x}px`
+            tooltipRef.current.style.top = `${event.data.y}px`
+          }
+        } else {
+          setHoverPoint(null)
+        }
+      } else if (event.data.type === 'pointHoverOut') {
+        setHoverPoint(null)
       } else if (event.data.type === 'iframeReady') {
         setIframeLoaded(true)
       } else if (event.data.type === 'webGLError') {
@@ -188,6 +263,21 @@ export default function CDNGlobe() {
               lat: point.lat,
               lng: point.lng
             }, '*');
+          })
+          .onPointHover((point, prevPoint) => {
+            if (point) {
+              window.parent.postMessage({
+                type: 'pointHover',
+                lat: point.lat,
+                lng: point.lng,
+                x: event.clientX,
+                y: event.clientY
+              }, '*');
+            } else {
+              window.parent.postMessage({
+                type: 'pointHoverOut'
+              }, '*');
+            }
           });
         
         updatePoints();
@@ -210,12 +300,18 @@ export default function CDNGlobe() {
       }
       
       // Format points for visualization
-      const formattedPoints = points.map(point => ({
-        ...point,
-        color: point.category === 'feedback' ? 'rgba(75, 192, 192, 0.8)' :
-               point.category === 'churn' ? 'rgba(255, 99, 132, 0.8)' :
-               'rgba(54, 162, 235, 0.8)',
-      }));
+      const formattedPoints = points.map(point => {
+        const color = point.category === 'feedback' ? 'rgba(75, 192, 192, 0.8)' :
+                     point.category === 'churn' ? 'rgba(255, 99, 132, 0.8)' :
+                     point.category === 'service' ? 'rgba(54, 162, 235, 0.8)' :
+                     'rgba(156, 39, 176, 0.8)';
+                     
+        return {
+          ...point,
+          color: color,
+          radius: point.value / 80, // Scale based on value
+        };
+      });
       
       // Update globe
       if (globe) {
@@ -223,8 +319,8 @@ export default function CDNGlobe() {
           .pointsData(formattedPoints)
           .pointColor('color')
           .pointAltitude(0.01)
-          .pointRadius(0.5)
-          .pointLabel(point => \`\${point.region}: \${point.value} (\${point.category})\`);
+          .pointRadius('radius')
+          .pointLabel(() => ''); // We'll handle the labels ourselves with a tooltip
       }
     }
     
@@ -280,7 +376,7 @@ export default function CDNGlobe() {
               onClick={() => handleCategoryToggle(category)}
               className="capitalize"
             >
-              {category}
+              {globeData.categoryInfo?.[category]?.name || category}
             </Button>
           ))}
         </div>
@@ -325,6 +421,19 @@ export default function CDNGlobe() {
                   )
                   if (selectedData) {
                     setSelectedPoint(selectedData)
+                    setShowDetailPanel(true)
+                  }
+                }}
+                onPointHover={(point) => {
+                  if (point) {
+                    const hoverData = globeData.points.find(
+                      p => p.lat === point.coordinates[1] && p.lng === point.coordinates[0]
+                    )
+                    if (hoverData) {
+                      setHoverPoint(hoverData)
+                    }
+                  } else {
+                    setHoverPoint(null)
                   }
                 }}
                 onCategoryChange={setActiveCategory}
@@ -332,28 +441,63 @@ export default function CDNGlobe() {
             </div>
           )}
           
+          {/* Hover Tooltip */}
+          {hoverPoint && (
+            <div 
+              ref={tooltipRef}
+              className="absolute pointer-events-none z-20 bg-background-elevated/90 backdrop-blur-sm rounded-md shadow-lg p-3 transform -translate-x-1/2 -translate-y-[110%] border border-[#FF3333]/30 text-white"
+              style={{
+                maxWidth: '280px',
+                transition: 'opacity 0.15s ease'
+              }}
+            >
+              <div className="font-medium text-base flex items-center mb-1 gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCategoryColor(hoverPoint.category) }}></div>
+                {hoverPoint.region}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-2">
+                <div className="text-text-secondary">Category:</div>
+                <div className="font-medium capitalize">
+                  {globeData.categoryInfo?.[hoverPoint.category]?.name || hoverPoint.category}
+                </div>
+                
+                <div className="text-text-secondary">Value:</div>
+                <div className="font-medium">
+                  {hoverPoint.value}
+                  {globeData.categoryInfo?.[hoverPoint.category]?.unit ? 
+                    ` ${globeData.categoryInfo[hoverPoint.category].unit}` : ''}
+                </div>
+                
+                <div className="text-text-secondary">Trend:</div>
+                <div className={`font-medium flex items-center ${getTrendClass(hoverPoint.trend)}`}>
+                  {getTrendIcon(hoverPoint.trend)} {hoverPoint.trend}
+                </div>
+              </div>
+              
+              <div className="text-xs opacity-75 text-center italic">Click for details</div>
+            </div>
+          )}
+          
           {/* Legend */}
-          <div className="absolute bottom-4 right-4 bg-background-elevated bg-opacity-80 p-3 rounded-md text-sm backdrop-blur-sm">
+          <div className="absolute bottom-4 right-4 bg-background-elevated/80 p-3 rounded-md text-sm backdrop-blur-sm shadow-lg border border-secondary/30">
             <div className="font-medium mb-2">Legend</div>
             <div className="grid grid-cols-1 gap-1">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-[rgba(75,192,192,0.8)] mr-2"></div>
-                <span>Feedback</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-[rgba(255,99,132,0.8)] mr-2"></div>
-                <span>Churn Risk</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-[rgba(54,162,235,0.8)] mr-2"></div>
-                <span>Service Quality</span>
-              </div>
+              {categories.map(category => (
+                <div key={category} className="flex items-center">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2" 
+                    style={{ backgroundColor: getCategoryColor(category) }}
+                  ></div>
+                  <span>{globeData.categoryInfo?.[category]?.name || category}</span>
+                </div>
+              ))}
             </div>
           </div>
           
-          {/* Selected Point Info */}
-          {selectedPoint && (
-            <div className="absolute top-4 left-4 bg-background-elevated bg-opacity-80 p-4 rounded-md text-sm max-w-md backdrop-blur-sm">
+          {/* Compact Selected Point Info */}
+          {selectedPoint && !showDetailPanel && (
+            <div className="absolute bottom-4 left-4 bg-background-elevated/90 p-4 rounded-md text-sm backdrop-blur-sm shadow-lg border border-[#FF3333]/30 max-w-xs animate-fade-in transition-all duration-300">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-medium text-base">{selectedPoint.region}</h3>
                 <button 
@@ -363,33 +507,226 @@ export default function CDNGlobe() {
                   ✕
                 </button>
               </div>
+              
               <div className="grid grid-cols-2 gap-y-2 mb-3">
                 <div className="text-text-secondary">Category:</div>
-                <div className="font-medium capitalize">{selectedPoint.category}</div>
+                <div className="font-medium capitalize">
+                  {globeData.categoryInfo?.[selectedPoint.category]?.name || selectedPoint.category}
+                </div>
+                
                 <div className="text-text-secondary">Value:</div>
-                <div className="font-medium">{selectedPoint.value}</div>
+                <div className="font-medium">
+                  {selectedPoint.value}
+                  {globeData.categoryInfo?.[selectedPoint.category]?.unit ? 
+                    ` ${globeData.categoryInfo[selectedPoint.category].unit}` : ''}
+                </div>
+                
                 <div className="text-text-secondary">Trend:</div>
                 <div className={`font-medium flex items-center ${getTrendClass(selectedPoint.trend)}`}>
                   {getTrendIcon(selectedPoint.trend)} {selectedPoint.trend}
                 </div>
-                {globeData.regionInfo[selectedPoint.region]?.details && (
-                  <>
-                    <div className="text-text-secondary">Details:</div>
-                    <div className="font-medium text-xs">{globeData.regionInfo[selectedPoint.region].details}</div>
-                  </>
-                )}
               </div>
+              
               <Button 
                 variant="primary"
                 className="w-full mt-2"
-                onClick={() => {
-                  if (selectedPoint.region && globeData.regionInfo[selectedPoint.region]?.dashboardId) {
-                    console.log(`Navigate to dashboard: ${globeData.regionInfo[selectedPoint.region].dashboardId}`)
-                  }
-                }}
+                onClick={() => setShowDetailPanel(true)}
               >
-                View Dashboard
+                View Details
               </Button>
+            </div>
+          )}
+          
+          {/* Detailed Information Panel */}
+          {selectedPoint && showDetailPanel && (
+            <div className="absolute top-0 left-0 bottom-0 bg-background-paper/95 backdrop-blur-md border-r border-secondary/30 w-80 shadow-xl overflow-y-auto animate-slide-in transition-all duration-300 z-10">
+              <div className="sticky top-0 bg-background-paper/90 backdrop-blur-md p-4 border-b border-secondary/30 z-10">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium">{selectedPoint.region}</h2>
+                  <button 
+                    onClick={() => {
+                      setShowDetailPanel(false)
+                    }}
+                    className="p-1 rounded-full hover:bg-secondary/20 text-text-secondary"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div className="text-sm text-text-secondary">
+                  {globeData.regionInfo?.[selectedPoint.region]?.details || 'Regional data overview'}
+                </div>
+              </div>
+              
+              <div className="p-4">
+                {/* Key Metrics */}
+                <div className="mb-6">
+                  <h3 className="text-sm uppercase text-text-secondary mb-2 font-medium tracking-wider">Key Metrics</h3>
+                  
+                  <div className="bg-background-elevated rounded-md p-3 mb-3 border border-secondary/30">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-4 h-4 rounded-full mr-2" 
+                        style={{ backgroundColor: getCategoryColor(selectedPoint.category) }}
+                      ></div>
+                      <div className="font-medium">
+                        {globeData.categoryInfo?.[selectedPoint.category]?.name || selectedPoint.category}
+                      </div>
+                      <div className={`ml-auto font-medium flex items-center ${getTrendClass(selectedPoint.trend)}`}>
+                        {getTrendIcon(selectedPoint.trend)} {selectedPoint.value}
+                        {globeData.categoryInfo?.[selectedPoint.category]?.unit ? 
+                          ` ${globeData.categoryInfo[selectedPoint.category].unit}` : ''}
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-text-secondary mt-1">
+                      {globeData.categoryInfo?.[selectedPoint.category]?.description || 'Category metrics'}
+                    </div>
+                  </div>
+                  
+                  {/* Other categories for this region */}
+                  {categories
+                    .filter(cat => cat !== selectedPoint.category)
+                    .map(cat => {
+                      const point = globeData.points.find(
+                        p => p.region === selectedPoint.region && p.category === cat
+                      )
+                      if (!point) return null
+                      
+                      return (
+                        <div key={cat} className="bg-background-elevated rounded-md p-3 mb-3 border border-secondary/30">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-4 h-4 rounded-full mr-2" 
+                              style={{ backgroundColor: getCategoryColor(cat) }}
+                            ></div>
+                            <div className="font-medium">
+                              {globeData.categoryInfo?.[cat]?.name || cat}
+                            </div>
+                            <div className={`ml-auto font-medium flex items-center ${getTrendClass(point.trend)}`}>
+                              {getTrendIcon(point.trend)} {point.value}
+                              {globeData.categoryInfo?.[cat]?.unit ? 
+                                ` ${globeData.categoryInfo[cat].unit}` : ''}
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-text-secondary mt-1">
+                            {globeData.categoryInfo?.[cat]?.description || 'Category metrics'}
+                          </div>
+                        </div>
+                      )
+                  })}
+                </div>
+                
+                {/* Historical Data */}
+                <div className="mb-6">
+                  <h3 className="text-sm uppercase text-text-secondary mb-2 font-medium tracking-wider">Historical Trends</h3>
+                  
+                  {getCategoryMetrics(selectedPoint.category, selectedPoint.region).length > 0 ? (
+                    <div className="bg-background-elevated rounded-md p-3 border border-secondary/30">
+                      <div className="h-32 relative">
+                        {/* Simple trend visualization */}
+                        <div className="flex items-end h-full relative">
+                          {getCategoryMetrics(selectedPoint.category, selectedPoint.region).map((point, i, arr) => {
+                            const maxValue = Math.max(...arr.map(p => p.value));
+                            const height = (point.value / maxValue) * 100;
+                            const width = `${100 / arr.length}%`;
+                            
+                            return (
+                              <div 
+                                key={i} 
+                                className="flex-1 mx-0.5 group cursor-pointer relative"
+                                title={`${point.date}: ${point.value}`}
+                              >
+                                <div 
+                                  className="w-full bg-[#FF3333]" 
+                                  style={{ 
+                                    height: `${height}%`,
+                                    opacity: i === arr.length - 1 ? 1 : 0.6
+                                  }}
+                                ></div>
+                                <div className="absolute bottom-0 left-0 right-0 text-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {point.value}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-text-secondary mt-2 flex justify-between">
+                        <span>
+                          {getCategoryMetrics(selectedPoint.category, selectedPoint.region)[0]?.date || ''}
+                        </span>
+                        <span>
+                          {getCategoryMetrics(selectedPoint.category, selectedPoint.region).slice(-1)[0]?.date || ''}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-text-secondary">No historical data available</div>
+                  )}
+                </div>
+                
+                {/* Connections */}
+                {getRelatedConnections(selectedPoint.region).length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm uppercase text-text-secondary mb-2 font-medium tracking-wider">Connections</h3>
+                    
+                    {getRelatedConnections(selectedPoint.region).map((conn, i) => (
+                      <div key={i} className="bg-background-elevated rounded-md p-3 mb-2 border border-secondary/30">
+                        <div className="flex items-center">
+                          <div className="font-medium">
+                            {conn.source === selectedPoint.region ? conn.target : conn.source}
+                          </div>
+                          <div className="text-text-secondary mx-2">
+                            {conn.source === selectedPoint.region ? '→' : '←'}
+                          </div>
+                          <div className="text-xs capitalize bg-background-paper px-2 py-0.5 rounded">
+                            {conn.type}
+                          </div>
+                          <div className="ml-auto font-medium">
+                            {conn.value}%
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  <Button 
+                    variant="primary"
+                    onClick={() => {
+                      if (selectedPoint.region && globeData.regionInfo[selectedPoint.region]?.dashboardId) {
+                        console.log(`Navigate to dashboard: ${globeData.regionInfo[selectedPoint.region].dashboardId}`)
+                      }
+                    }}
+                  >
+                    View Dashboard
+                  </Button>
+                  
+                  <Button 
+                    variant="secondary"
+                    onClick={() => {
+                      console.log(`Generate report for ${selectedPoint.region}`)
+                    }}
+                  >
+                    Generate Report
+                  </Button>
+                  
+                  <Button 
+                    variant="secondary"
+                    className="col-span-2"
+                    onClick={() => {
+                      console.log(`Deep dive into ${selectedPoint.region} data`)
+                    }}
+                  >
+                    Data Deep Dive
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>

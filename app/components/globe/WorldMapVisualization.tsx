@@ -41,6 +41,7 @@ export default function WorldMapVisualization({
   initialCategory = null,
   showControls = true,
   onPointSelect = () => {},
+  onPointHover = () => {},
   onCategoryChange = () => {}
 }) {
   const [activeCategory, setActiveCategory] = useState(initialCategory)
@@ -96,9 +97,33 @@ export default function WorldMapVisualization({
     return Math.max(8, Math.min(value / 5, 20))
   }
   
+  const getCategoryColor = (category) => {
+    switch(category) {
+      case 'feedback': return 'rgba(75, 192, 192, 0.8)';
+      case 'churn': return 'rgba(255, 99, 132, 0.8)';
+      case 'service': return 'rgba(54, 162, 235, 0.8)';
+      case 'Office': return 'rgba(75, 192, 192, 0.8)';
+      case 'Partner': return 'rgba(255, 165, 0, 0.8)';
+      case 'Warehouse': return 'rgba(54, 162, 235, 0.8)';
+      default: return 'rgba(156, 39, 176, 0.8)';
+    }
+  }
+  
   // Handle point selection
   const handlePointClick = (point) => {
     onPointSelect(point)
+  }
+  
+  // Handle point hover
+  const handlePointHover = (point, e) => {
+    onPointHover(point)
+    
+    if (point) {
+      setTooltipContent(`${point.name} (${point.category}): ${point.value}`)
+      setTooltipPosition({ x: e.clientX, y: e.clientY })
+    } else {
+      setTooltipContent(null)
+    }
   }
   
   // Handle error for map rendering
@@ -234,20 +259,19 @@ export default function WorldMapVisualization({
                   coordinates={point.coordinates}
                   onClick={() => handlePointClick(point)}
                   onMouseEnter={(e) => {
-                    setTooltipContent(`${point.name} (${point.category}): ${point.value}`)
-                    setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    handlePointHover(point, e)
                   }}
                   onMouseLeave={() => {
+                    handlePointHover(null)
                     setTooltipContent(null)
                   }}
                 >
                   <circle 
                     r={getMarkerSize(point.value)} 
-                    fill={point.category === 'feedback' ? 'rgba(75, 192, 192, 0.8)' :
-                          point.category === 'churn' ? 'rgba(255, 99, 132, 0.8)' :
-                          'rgba(144, 202, 249, 0.8)'} 
+                    fill={getCategoryColor(point.category)} 
                     stroke="#FFFFFF" 
-                    strokeWidth={1} 
+                    strokeWidth={1}
+                    className="hover:stroke-[#FF3333] hover:stroke-2 transition-all duration-150"
                   />
                 </Marker>
               ))}
@@ -271,9 +295,9 @@ export default function WorldMapVisualization({
           </div>
         )}
         
-        {tooltipContent && (
+        {tooltipContent && !onPointHover && (
           <div 
-            className="absolute glass-panel p-2 rounded-md text-sm pointer-events-none z-10"
+            className="absolute bg-background-elevated/90 backdrop-blur-sm p-2 rounded-md text-sm pointer-events-none z-10 shadow-lg border border-secondary/20"
             style={{ 
               left: `${tooltipPosition.x + 10}px`, 
               top: `${tooltipPosition.y + 10}px` 
@@ -283,20 +307,17 @@ export default function WorldMapVisualization({
           </div>
         )}
         
-        <div className="absolute bottom-4 right-4 glass-panel p-3 rounded-md text-sm z-10">
+        <div className="absolute bottom-4 right-4 bg-background-elevated/80 p-3 rounded-md text-sm backdrop-blur-sm shadow-lg border border-secondary/30">
           <div className="font-medium mb-2">Legend</div>
-          <div className="flex items-center mb-1">
-            <div className="w-3 h-3 rounded-full bg-[rgba(75,192,192,0.8)] mr-2"></div>
-            <span>Feedback</span>
-          </div>
-          <div className="flex items-center mb-1">
-            <div className="w-3 h-3 rounded-full bg-[rgba(255,99,132,0.8)] mr-2"></div>
-            <span>Churn Risk</span>
-          </div>
-          <div className="flex items-center mb-1">
-            <div className="w-3 h-3 rounded-full bg-[rgba(54,162,235,0.8)] mr-2"></div>
-            <span>Service Quality</span>
-          </div>
+          {categories.map(category => (
+            <div key={category} className="flex items-center mb-1">
+              <div 
+                className="w-3 h-3 rounded-full mr-2" 
+                style={{ backgroundColor: getCategoryColor(category) }}
+              ></div>
+              <span className="capitalize">{category}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
