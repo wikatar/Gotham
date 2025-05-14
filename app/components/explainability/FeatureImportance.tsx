@@ -195,7 +195,7 @@ export default function FeatureImportance({ selectedModel, onSelectModel }: Feat
               key={model.id}
               className={`p-4 border rounded-md cursor-pointer transition-colors ${
                 selectedModel === model.id 
-                  ? 'border-primary bg-primary/5' 
+                  ? 'border-[#FF3333] bg-[#300000] text-white shadow-md' 
                   : 'border-secondary/20 hover:border-secondary/40'
               }`}
               onClick={() => onSelectModel(model.id)}
@@ -253,6 +253,7 @@ export default function FeatureImportance({ selectedModel, onSelectModel }: Feat
                         variant={categoryFilter === 'all' ? 'primary' : 'secondary'}
                         size="sm"
                         onClick={() => setCategoryFilter('all')}
+                        className={categoryFilter === 'all' ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
                       >
                         All
                       </Button>
@@ -262,6 +263,7 @@ export default function FeatureImportance({ selectedModel, onSelectModel }: Feat
                           variant={categoryFilter === category ? 'primary' : 'secondary'}
                           size="sm"
                           onClick={() => setCategoryFilter(category)}
+                          className={categoryFilter === category ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
                         >
                           {category}
                         </Button>

@@ -251,7 +251,7 @@ export default function InsightChain() {
                     key={chain.id} 
                     className={`p-3 rounded-md cursor-pointer transition-colors ${
                       selectedChain?.id === chain.id 
-                        ? 'bg-primary/10 border-l-4 border-primary' 
+                        ? 'bg-[#300000] border-l-4 border-[#FF3333] text-white' 
                         : 'bg-background-elevated hover:bg-background-elevated/80'
                     }`}
                     onClick={() => handleSelectChain(chain)}

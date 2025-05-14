@@ -42,14 +42,14 @@ function SidebarItem({ icon, label, href, badge, active }: SidebarItemProps) {
       href={href}
       className={`flex items-center p-2 rounded-md mb-1 ${
         isActive 
-          ? 'bg-primary/10 text-primary' 
+          ? 'bg-background-elevated border-l-2 border-[#FF3333] text-white' 
           : 'text-text-primary hover:bg-secondary/10'
       }`}
     >
       <span className="mr-3">{icon}</span>
       <span className="flex-1">{label}</span>
       {badge && (
-        <span className="bg-primary text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
+        <span className="bg-background-elevated border border-[#FF3333]/70 text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
           {badge}
         </span>
       )}
@@ -69,7 +69,7 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between p-4 border-b border-secondary/20">
         {!collapsed && (
-          <div className="text-lg font-bold text-gradient">Enterprise Brain</div>
+          <div className="text-lg font-bold text-white">Monolith AI</div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
@@ -79,10 +79,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <div className="px-2 mb-6">
-        <div className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-2 pl-2">
-          Enterprise Brain
-        </div>
+      <div className="px-2 mb-6 pt-4">
         <nav className="space-y-1">
           <SidebarItem 
             icon="🧭" 
@@ -129,7 +126,7 @@ export default function Sidebar() {
       <div className="absolute bottom-0 w-full p-4 border-t border-secondary/20">
         {!collapsed && (
           <div className="text-sm text-text-secondary">
-            Enterprise Brain v1.0.0
+            v1.0.0
           </div>
         )}
       </div>

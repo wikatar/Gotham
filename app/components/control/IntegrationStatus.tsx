@@ -161,6 +161,7 @@ export default function IntegrationStatus() {
           variant={filter === 'all' ? 'primary' : 'secondary'} 
           size="sm"
           onClick={() => setFilter('all')}
+          className={filter === 'all' ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
         >
           All Integrations
         </Button>
@@ -168,6 +169,7 @@ export default function IntegrationStatus() {
           variant={filter === 'connected' ? 'primary' : 'secondary'} 
           size="sm"
           onClick={() => setFilter('connected')}
+          className={filter === 'connected' ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
         >
           Connected
         </Button>
@@ -175,6 +177,7 @@ export default function IntegrationStatus() {
           variant={filter === 'disconnected' ? 'primary' : 'secondary'} 
           size="sm"
           onClick={() => setFilter('disconnected')}
+          className={filter === 'disconnected' ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
         >
           Disconnected
         </Button>
@@ -182,6 +185,7 @@ export default function IntegrationStatus() {
           variant={filter === 'error' ? 'primary' : 'secondary'} 
           size="sm"
           onClick={() => setFilter('error')}
+          className={filter === 'error' ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
         >
           Error
         </Button>
@@ -189,6 +193,7 @@ export default function IntegrationStatus() {
           variant={filter === 'pending' ? 'primary' : 'secondary'} 
           size="sm"
           onClick={() => setFilter('pending')}
+          className={filter === 'pending' ? 'bg-[#FF3333] border-[#FF3333] hover:bg-[#CC0000]' : ''}
         >
           Pending
         </Button>

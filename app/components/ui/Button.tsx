@@ -3,7 +3,7 @@
 import { ButtonHTMLAttributes } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'text'
+  variant?: 'primary' | 'secondary' | 'text' | 'warning' | 'danger' | 'info' | 'success'
   size?: 'sm' | 'md' | 'lg'
   children: React.ReactNode
 }
@@ -17,11 +17,26 @@ export default function Button({
 }: ButtonProps) {
   const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none'
   
-  const variantClasses = {
-    primary: 'bg-primary hover:bg-primary-light text-text-primary',
-    secondary: 'bg-secondary/30 hover:bg-secondary/50 text-text-secondary hover:text-text-primary',
-    text: 'bg-transparent hover:bg-secondary/20 text-text-secondary hover:text-text-primary',
-  }
+  const getVariantClasses = () => {
+    switch (variant) {
+      case 'primary':
+        return 'bg-[#FF3333] hover:bg-[#CC0000] border border-[#FF3333] text-white';
+      case 'secondary':
+        return 'bg-background-paper hover:bg-background-elevated border border-secondary/30 text-text-primary';
+      case 'text':
+        return 'bg-transparent hover:bg-secondary/20 border-transparent text-text-secondary hover:text-text-primary';
+      case 'warning':
+        return 'bg-warning/10 hover:bg-warning/20 border border-warning text-warning';
+      case 'danger':
+        return 'bg-error/10 hover:bg-error/20 border border-error text-error';
+      case 'info':
+        return 'bg-info/10 hover:bg-info/20 border border-info text-info';
+      case 'success':
+        return 'bg-success/10 hover:bg-success/20 border border-success text-success';
+      default:
+        return 'bg-background-paper hover:bg-background-elevated border border-secondary/30 text-text-primary';
+    }
+  };
   
   const sizeClasses = {
     sm: 'text-xs px-2.5 py-1.5',
@@ -31,7 +46,7 @@ export default function Button({
   
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} ${getVariantClasses()} ${sizeClasses[size]} ${className}`}
       {...props}
     >
       {children}
