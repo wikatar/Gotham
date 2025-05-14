@@ -24,6 +24,39 @@ const navItems = [
   { name: 'Settings', path: '/settings', icon: '⚙️' },
 ]
 
+interface SidebarItemProps {
+  icon: string;
+  label: string;
+  href: string;
+  badge?: number;
+  active?: boolean;
+}
+
+// SidebarItem component
+function SidebarItem({ icon, label, href, badge, active }: SidebarItemProps) {
+  const pathname = usePathname();
+  const isActive = active !== undefined ? active : pathname === href;
+
+  return (
+    <Link 
+      href={href}
+      className={`flex items-center p-2 rounded-md mb-1 ${
+        isActive 
+          ? 'bg-primary/10 text-primary' 
+          : 'text-text-primary hover:bg-secondary/10'
+      }`}
+    >
+      <span className="mr-3">{icon}</span>
+      <span className="flex-1">{label}</span>
+      {badge && (
+        <span className="bg-primary text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
+          {badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
