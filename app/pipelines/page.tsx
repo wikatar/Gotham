@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import PipelineBuilder from '@/components/pipelines/PipelineBuilder';
 import PipelineScheduler from '@/components/pipelines/PipelineScheduler';
+import PipelineHistory from '@/components/pipelines/PipelineHistory';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -12,6 +13,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
+import { toast } from '@/components/ui/use-toast';
 
 interface Pipeline {
   id: string;
@@ -26,6 +28,7 @@ export default function PipelinesPage() {
   const [activeTab, setActiveTab] = useState('builder');
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loading, setLoading] = useState(false);
+  const [executing, setExecuting] = useState(false);
   
   // Mock data - in a real app this would come from authentication
   const accountId = 'demo-account';
@@ -63,6 +66,47 @@ export default function PipelinesPage() {
     setSelectedPipeline(null);
     fetchPipelines(); // Refresh the list
   };
+  
+  const runPipeline = async (pipelineId: string) => {
+    setExecuting(true);
+    try {
+      const response = await fetch('/api/pipelines/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pipelineId,
+          input: { timestamp: new Date().toISOString() }
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to run pipeline');
+      }
+      
+      const data = await response.json();
+      toast({
+        title: 'Pipeline executed successfully',
+        description: `Pipeline ${pipelineId} executed successfully.`,
+      });
+      
+      // Automatically navigate to history tab to see results
+      setSelectedPipeline(pipelineId);
+      setActiveTab('history');
+      
+    } catch (error) {
+      console.error('Error running pipeline:', error);
+      toast({
+        title: 'Pipeline execution failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setExecuting(false);
+    }
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -77,6 +121,12 @@ export default function PipelinesPage() {
             disabled={!selectedPipeline}
           >
             Scheduler
+          </TabsTrigger>
+          <TabsTrigger 
+            value="history"
+            disabled={!selectedPipeline}
+          >
+            History
           </TabsTrigger>
         </TabsList>
         
@@ -125,12 +175,20 @@ export default function PipelinesPage() {
                         <Button 
                           size="sm" 
                           variant="outline"
+                          onClick={() => runPipeline(pipeline.id)}
+                          disabled={executing}
+                        >
+                          {executing ? 'Running...' : 'Run Now'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => {
-                            // This would go to execution view in a real app
-                            alert(`Running pipeline: ${pipeline.name}`);
+                            setSelectedPipeline(pipeline.id);
+                            setActiveTab('history');
                           }}
                         >
-                          Run Now
+                          History
                         </Button>
                       </div>
                     </CardContent>
@@ -154,6 +212,23 @@ export default function PipelinesPage() {
               pipelineId={selectedPipeline}
               accountId={accountId}
               onScheduleSaved={handleScheduleSaved}
+            />
+          ) : (
+            <div className="text-center p-8">
+              <p className="mb-4">No pipeline selected. Select a pipeline first.</p>
+              <Button onClick={() => setActiveTab('pipelines')}>
+                View Pipelines
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="history" className="border rounded-lg p-4">
+          {selectedPipeline ? (
+            <PipelineHistory 
+              pipelineId={selectedPipeline}
+              accountId={accountId}
+              limit={20}
             />
           ) : (
             <div className="text-center p-8">

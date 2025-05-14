@@ -30,6 +30,7 @@ model Account {
   anomalies      Anomaly[]
   pipelines      Pipeline[]
   pipelineSchedules PipelineSchedule[]
+  pipelineExecutions PipelineExecution[]
 }
 
 // Users
@@ -288,4 +289,25 @@ model PipelineSchedule {
   @@index([accountId])
   @@index([pipelineId])
   @@index([active])
+}
+
+// Pipeline Executions
+model PipelineExecution {
+  id         String   @id @default(cuid())
+  pipelineId String
+  startedAt  DateTime @default(now())
+  endedAt    DateTime?
+  status     String   // success | error | pending
+  input      Json
+  output     Json?
+  error      String?
+  accountId  String
+  
+  // Relations
+  account    Account @relation(fields: [accountId], references: [id])
+  
+  @@index([pipelineId])
+  @@index([accountId])
+  @@index([status])
+  @@index([startedAt])
 } 
