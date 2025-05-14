@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { SAMPLE_RULES, evaluateRules } from './rules';
 
 // Dummy orchestrator: på riktigt ska här ligga din regelmotor
 export async function POST(req: NextRequest) {
@@ -9,13 +7,14 @@ export async function POST(req: NextRequest) {
 
   const { accountId, missionId, input } = body;
 
-  // Här: hämta mission, regler, feedstatus, KPI etc.
-  console.log('Orchestrator received:', { accountId, missionId, input });
+  const matched = evaluateRules(input, SAMPLE_RULES, missionId);
 
-  // Dummy return
+  if (matched.length === 0) {
+    return NextResponse.json({ status: 'ok', result: 'no rules matched' });
+  }
+
   return NextResponse.json({
-    action: 'trigger_model',
-    modelId: 'abc123',
-    triggerReason: 'churn > 20%',
+    status: 'actionable',
+    actions: matched.map((m) => m.action),
   });
 } 
