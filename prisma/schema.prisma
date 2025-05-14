@@ -32,6 +32,7 @@ model Account {
   pipelineSchedules PipelineSchedule[]
   pipelineExecutions PipelineExecution[]
   dataSources    DataSource[]
+  dataSourceSyncs DataSourceSync[]
 }
 
 // Users
@@ -327,14 +328,18 @@ model DataSource {
   importedAt  DateTime
   recordCount Int
   accountId   String
+  sourceType  String   // api, database, file, csv, json, etc.
   
   // Relations
   account     Account  @relation(fields: [accountId], references: [id])
   rows        DataRow[]
   cleaningPipelines DataCleaningPipeline[]
   cleanedRows CleanedRow[]
+  syncs       DataSourceSync[]
+  syncLogs    DataSyncLog[]
   
   @@index([accountId])
+  @@index([sourceType])
 }
 
 model DataRow {
@@ -376,4 +381,111 @@ model CleanedRow {
   
   @@index([sourceId])
   @@index([pipelineId])
+}
+
+// Data Source Synchronization Schedule
+model DataSourceSync {
+  id           String   @id @default(cuid())
+  sourceId     String
+  accountId    String
+  name         String
+  description  String?
+  // Sync configuration
+  syncType     String   // cron, interval, manual
+  interval     Int?     // In minutes, if syncType is interval
+  cron         String?  // Cron expression, if syncType is cron
+  config       Json     // Connection details (API keys, URLs, SQL connection, etc.)
+  active       Boolean  @default(true)
+  // Link to cleaning pipeline
+  runPipeline  Boolean  @default(false)
+  pipelineId   String?
+  lastSyncAt   DateTime?
+  nextSyncAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  account      Account     @relation(fields: [accountId], references: [id])
+  dataSource   DataSource  @relation(fields: [sourceId], references: [id])
+  syncLogs     DataSyncLog[]
+
+  @@index([sourceId])
+  @@index([accountId])
+  @@index([active])
+  @@index([syncType])
+  @@index([nextSyncAt])
+}
+
+// Log of data synchronization executions
+model DataSyncLog {
+  id           String   @id @default(cuid())
+  syncId       String?  // Can be null for manual imports
+  sourceId     String
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  status       String   // pending, success, error
+  recordCount  Int      @default(0)
+  error        String?
+  details      Json?
+  triggeredBy  String   // system, user, etc.
+
+  // Relations
+  sync         DataSourceSync? @relation(fields: [syncId], references: [id])
+  dataSource   DataSource @relation(fields: [sourceId], references: [id])
+
+  @@index([syncId])
+  @@index([sourceId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// ==========================================
+// Semantic Modeling - Entity Type Definitions
+// ==========================================
+
+// EntityType - Defines the semantic entity types in the system
+model EntityType {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  fieldMaps        EntityFieldMap[]
+  sourceRelations  EntityRelation[] @relation("FromEntityType")
+  targetRelations  EntityRelation[] @relation("ToEntityType")
+}
+
+// EntityFieldMap - Maps cleaned data fields to semantic entity fields
+model EntityFieldMap {
+  id               String   @id @default(cuid())
+  entityTypeId     String
+  cleanedFieldName String
+  semanticName     String
+  createdAt        DateTime @default(now())
+
+  // Relations
+  entityType       EntityType @relation(fields: [entityTypeId], references: [id])
+
+  @@index([entityTypeId])
+  @@index([cleanedFieldName])
+}
+
+// EntityRelation - Defines relationships between entity types
+model EntityRelation {
+  id               String   @id @default(cuid())
+  fromEntityTypeId String
+  toEntityTypeId   String
+  relationType     String   // hasMany, hasOne, belongsTo
+  description      String?
+  createdAt        DateTime @default(now())
+
+  // Relations
+  fromEntityType   EntityType @relation("FromEntityType", fields: [fromEntityTypeId], references: [id])
+  toEntityType     EntityType @relation("ToEntityType", fields: [toEntityTypeId], references: [id])
+
+  @@index([fromEntityTypeId])
+  @@index([toEntityTypeId])
+  @@index([relationType])
 } 
