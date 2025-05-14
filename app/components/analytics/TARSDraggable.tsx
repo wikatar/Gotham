@@ -67,6 +67,13 @@ export default function TARSDraggable({
     }
   }, [])
 
+  // Save position before hiding if isExpanded changes from true to false
+  useEffect(() => {
+    if (!isExpanded) {
+      localStorage.setItem('tars-position', JSON.stringify(position));
+    }
+  }, [isExpanded, position]);
+
   // Handle dragging logic
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && e.target.closest('.no-drag')) {
@@ -171,6 +178,7 @@ export default function TARSDraggable({
     width: isExpanded ? `${size.width}px` : undefined,
     height: isExpanded ? `${size.height}px` : undefined,
     cursor: isDragging ? 'grabbing' : 'auto',
+    display: isExpanded ? 'flex' : 'none',
   }
 
   // Return the draggable component

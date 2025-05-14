@@ -65,7 +65,7 @@ export default function DataSourceSelector() {
                         <span className="capitalize">{dataSource.type}</span>
                         {dataSource.lastUpdated && (
                           <span className="ml-2">
-                            {new Date(dataSource.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatTime(new Date(dataSource.lastUpdated))}
                           </span>
                         )}
                       </div>
@@ -127,4 +127,11 @@ function getDataSourceStatusColor(status: string): string {
     default:
       return 'bg-yellow-500'
   }
+}
+
+// Helper function for consistent time formatting
+function formatTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 } 

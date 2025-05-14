@@ -143,11 +143,27 @@ export function TARSProvider({ children }: TARSProviderProps) {
   
   // Function to expand a TARS instance
   const expandInstance = (id: string) => {
+    // Restore last saved position if available
+    const savedPosition = localStorage.getItem(`tars-position-${id}`);
+    let position;
+    
+    if (savedPosition) {
+      try {
+        position = JSON.parse(savedPosition);
+      } catch (e) {
+        console.error('Failed to parse saved position', e);
+      }
+    }
+    
     setInstances(prev => prev.map(instance => 
       instance.id === id 
-        ? { ...instance, isExpanded: true } 
+        ? { 
+            ...instance, 
+            isExpanded: true,
+            position: position || instance.position 
+          } 
         : instance
-    ))
+    ));
     
     // If this is the active instance, also update the legacy state
     if (id === activeInstanceId) {
@@ -157,6 +173,12 @@ export function TARSProvider({ children }: TARSProviderProps) {
   
   // Function to collapse a TARS instance
   const collapseInstance = (id: string) => {
+    // Save position before collapsing so we can restore it later
+    const instance = instances.find(i => i.id === id);
+    if (instance && instance.position) {
+      localStorage.setItem(`tars-position-${id}`, JSON.stringify(instance.position));
+    }
+    
     setInstances(prev => prev.map(instance => 
       instance.id === id 
         ? { ...instance, isExpanded: false } 

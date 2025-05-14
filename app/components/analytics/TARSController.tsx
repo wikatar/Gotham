@@ -10,7 +10,6 @@ interface TARSControllerProps {
 }
 
 export default function TARSController({ externalExpanded }: TARSControllerProps) {
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [showInfoBadge, setShowInfoBadge] = useState(false)
   const pathname = usePathname()
   
@@ -67,8 +66,8 @@ export default function TARSController({ externalExpanded }: TARSControllerProps
   return (
     <>
       {/* Side indicator that's always visible when collapsed */}
-      {!isExpanded && isSidebarVisible && (
-        <div className="fixed right-0 top-1/2 transform -translate-y-1/2 bg-background-paper border-l border-t border-b border-secondary/20 rounded-l-md p-2 cursor-pointer z-40"
+      {!isExpanded && (
+        <div className="fixed right-0 top-1/2 transform -translate-y-1/2 bg-background-paper border-l border-t border-b border-secondary/20 rounded-l-md p-2 cursor-pointer z-40 hover:border-[#FF3333]/30 transition-colors duration-200"
           onClick={expandTARS}
         >
           <div className="flex flex-col items-center gap-2">
