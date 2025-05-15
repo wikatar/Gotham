@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import AgentExecutionLogs from './AgentExecutionLogs';
+import axios from 'axios';
 
 interface Agent {
   id: string;
@@ -107,7 +109,10 @@ interface AgentDetailProps {
 
 export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
   const agent = getAgentById(agentId);
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'settings' | 'logs'>('overview');
+  const [executing, setExecuting] = useState(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
+  const [executionSuccess, setExecutionSuccess] = useState<string | null>(null);
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -128,6 +133,39 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
     }
   };
 
+  // Execute agent manually
+  const executeAgent = async () => {
+    setExecuting(true);
+    setExecutionError(null);
+    setExecutionSuccess(null);
+    
+    try {
+      // Mock account ID for demo purposes
+      const accountId = 'mock-account-id';
+      
+      const response = await axios.post('/api/agents/execute', {
+        accountId,
+        agentId,
+        inputContext: {
+          message: "Run manual execution of agent",
+        }
+      });
+      
+      if (response.data.success) {
+        setExecutionSuccess('Agent executed successfully');
+        // Switch to logs tab to show result
+        setActiveTab('logs');
+      } else {
+        setExecutionError(response.data.error || 'Failed to execute agent');
+      }
+    } catch (err) {
+      console.error('Error executing agent:', err);
+      setExecutionError('Failed to execute agent');
+    } finally {
+      setExecuting(false);
+    }
+  };
+
   return (
     <div>
       {/* Header with back button */}
@@ -140,10 +178,40 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
           ← Back to List
         </Button>
         <h2 className="text-xl font-medium flex-1">{agent.name}</h2>
-        <span className={`px-2 py-1 text-sm rounded-full ${getStatusColor(agent.status)}`}>
-          {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
-        </span>
+        <div className="flex space-x-2">
+          <Button
+            variant="primary"
+            onClick={executeAgent}
+            disabled={executing}
+          >
+            {executing ? 'Running...' : 'Run Agent'}
+          </Button>
+          <span className={`px-2 py-1 text-sm rounded-full ${getStatusColor(agent.status)}`}>
+            {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
+          </span>
+        </div>
       </div>
+      
+      {/* Success/error messages */}
+      {executionError && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{executionError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {executionSuccess && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4 rounded">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-green-700">{executionSuccess}</p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Tabs */}
       <div className="flex border-b border-secondary/20 mb-6">
@@ -156,6 +224,16 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
           onClick={() => setActiveTab('overview')}
         >
           Overview
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'logs' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('logs')}
+        >
+          Execution Logs
         </button>
         <button
           className={`px-4 py-2 font-medium text-sm ${
@@ -313,6 +391,24 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
               </div>
             </Card>
           </div>
+        </div>
+      )}
+      
+      {/* Execution Logs Tab */}
+      {activeTab === 'logs' && (
+        <div>
+          <div className="mb-6">
+            <h3 className="text-xl font-medium">Execution Logs</h3>
+            <p className="text-sm text-text-secondary">
+              View all executions of this agent and their results
+            </p>
+          </div>
+          
+          <AgentExecutionLogs 
+            agentId={agentId} 
+            accountId="mock-account-id" 
+            limit={5}
+          />
         </div>
       )}
       

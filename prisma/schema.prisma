@@ -178,6 +178,7 @@ model Agent {
   // Relations
   account         Account   @relation(fields: [accountId], references: [id])
   createdBy       User      @relation(fields: [createdById], references: [id])
+  executionLogs   AgentExecutionLog[]
 
   @@index([accountId])
   @@index([createdById])
@@ -488,4 +489,29 @@ model EntityRelation {
   @@index([fromEntityTypeId])
   @@index([toEntityTypeId])
   @@index([relationType])
+}
+
+// Agent Execution Logs
+model AgentExecutionLog {
+  id              String   @id @default(uuid())
+  accountId       String
+  agentId         String
+  prompt          String   @db.Text
+  response        String?  @db.Text
+  inputContext    Json?
+  executionTime   Int?     // in milliseconds
+  actionTaken     String?
+  status          String   // success, error, pending
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  account         Account   @relation(fields: [accountId], references: [id])
+  agent           Agent     @relation(fields: [agentId], references: [id])
+
+  @@index([accountId])
+  @@index([agentId])
+  @@index([status])
+  @@index([createdAt])
 } 
