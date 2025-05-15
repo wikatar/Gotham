@@ -5,6 +5,8 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import AgentExecutionLogs from './AgentExecutionLogs';
 import ReasonChainViewer from '../explainability/ReasonChainViewer';
+import AgentFeedbackMetrics from './AgentFeedbackMetrics';
+import FeedbackForm from './FeedbackForm';
 import axios from 'axios';
 
 interface Agent {
@@ -110,12 +112,13 @@ interface AgentDetailProps {
 
 export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
   const agent = getAgentById(agentId);
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'settings' | 'logs' | 'explanation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'settings' | 'logs' | 'explanation' | 'feedback'>('overview');
   const [executing, setExecuting] = useState(false);
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [executionSuccess, setExecutionSuccess] = useState<string | null>(null);
   const [recentReasonChain, setRecentReasonChain] = useState<any | null>(null);
   const [loadingReasonChain, setLoadingReasonChain] = useState(false);
+  const [selectedExecutionLogId, setSelectedExecutionLogId] = useState<string | null>(null);
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -155,6 +158,32 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
       setLoadingReasonChain(false);
     }
   };
+  
+  // Fetch the most recent execution log for feedback
+  const fetchRecentExecutionLog = async () => {
+    try {
+      // Mock account ID
+      const accountId = 'mock-account-id';
+      
+      const response = await axios.get(`/api/agents/execution-logs?agentId=${agentId}&accountId=${accountId}&limit=1`);
+      
+      if (response.data.success && response.data.data.length > 0) {
+        setSelectedExecutionLogId(response.data.data[0].id);
+      } else {
+        setSelectedExecutionLogId(null);
+      }
+    } catch (error) {
+      console.error('Error fetching recent execution log:', error);
+      setSelectedExecutionLogId(null);
+    }
+  };
+  
+  // When switching to feedback tab, fetch recent execution log if none selected
+  useEffect(() => {
+    if (activeTab === 'feedback' && !selectedExecutionLogId) {
+      fetchRecentExecutionLog();
+    }
+  }, [activeTab, selectedExecutionLogId, agentId]);
   
   // Fetch reason chain when switching to explanation tab
   useEffect(() => {
@@ -294,6 +323,16 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
           onClick={() => setActiveTab('settings')}
         >
           Settings
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'feedback' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('feedback')}
+        >
+          Feedback
         </button>
       </div>
       
@@ -619,6 +658,55 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
           <div className="md:col-span-2 flex justify-end space-x-3">
             <Button variant="secondary">Cancel</Button>
             <Button variant="primary">Save Changes</Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Feedback Tab */}
+      {activeTab === 'feedback' && (
+        <div className="space-y-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-medium">Agent Feedback</h3>
+            <p className="text-sm text-text-secondary">
+              View performance metrics and provide feedback on this agent's actions
+            </p>
+          </div>
+          
+          {/* Feedback Metrics */}
+          <AgentFeedbackMetrics agentId={agentId} />
+          
+          {/* Provide Feedback */}
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-4">Provide Feedback</h3>
+            
+            {selectedExecutionLogId ? (
+              <FeedbackForm 
+                executionLogId={selectedExecutionLogId} 
+                accountId="mock-account-id"
+                onFeedbackSubmitted={() => {
+                  // Refresh the feedback metrics when new feedback is submitted
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
+                }}
+              />
+            ) : (
+              <Card>
+                <div className="p-6 text-center">
+                  <p className="text-text-secondary">
+                    No recent executions found for this agent. Run the agent to provide feedback.
+                  </p>
+                  <Button
+                    variant="primary"
+                    className="mt-4"
+                    onClick={executeAgent}
+                    disabled={executing}
+                  >
+                    {executing ? 'Running...' : 'Run Agent Now'}
+                  </Button>
+                </div>
+              </Card>
+            )}
           </div>
         </div>
       )}

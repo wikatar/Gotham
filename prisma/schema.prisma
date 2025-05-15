@@ -34,6 +34,7 @@ model Account {
   dataSources    DataSource[]
   dataSourceSyncs DataSourceSync[]
   agentExecutionLogs AgentExecutionLog[]
+  agentFeedback  AgentFeedback[]
 }
 
 // Users
@@ -173,6 +174,7 @@ model Agent {
   parameters      Json?
   createdById     String
   status          String   // active, inactive
+  trustScore      Float?   // Score 0-1 representing reliability based on feedback
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -510,6 +512,7 @@ model AgentExecutionLog {
   // Relations
   account         Account   @relation(fields: [accountId], references: [id])
   agent           Agent     @relation(fields: [agentId], references: [id])
+  feedback        AgentFeedback[]
 
   @@index([accountId])
   @@index([agentId])
@@ -546,4 +549,25 @@ model ControlPanelSnapshot {
   
   @@index([timestamp])
   @@index([systemHealthStatus])
+}
+
+// Agent Feedback
+model AgentFeedback {
+  id              String   @id @default(cuid())
+  executionLogId  String
+  accountId       String
+  rating          Int      // scale 1-5
+  comment         String?
+  wasActionEffective Boolean?
+  measuredImpact  Json?    // e.g. {"churnDrop": 12, "responseRate": 0.4}
+  createdAt       DateTime @default(now())
+
+  // Relations
+  executionLog    AgentExecutionLog @relation(fields: [executionLogId], references: [id])
+  account         Account @relation(fields: [accountId], references: [id])
+
+  @@index([executionLogId])
+  @@index([accountId])
+  @@index([rating])
+  @@index([wasActionEffective])
 } 
