@@ -33,6 +33,7 @@ model Account {
   pipelineExecutions PipelineExecution[]
   dataSources    DataSource[]
   dataSourceSyncs DataSourceSync[]
+  agentExecutionLogs AgentExecutionLog[]
 }
 
 // Users
@@ -513,5 +514,19 @@ model AgentExecutionLog {
   @@index([accountId])
   @@index([agentId])
   @@index([status])
+  @@index([createdAt])
+}
+
+// Explainability - Reason Chains
+model ReasonChain {
+  id               String   @id @default(cuid())
+  sourceType       String   // "agent", "rule", "anomaly"
+  sourceId         String   // ID to the agent, rule, etc. that generated this
+  conclusion       String   // What the decision/action was
+  explanationSteps Json     // List of reasoning chain steps in order
+  inputContext     Json     // Context: data, mission, etc.
+  createdAt        DateTime @default(now())
+
+  @@index([sourceType, sourceId])
   @@index([createdAt])
 } 

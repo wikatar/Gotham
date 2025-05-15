@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import AgentExecutionLogs from './AgentExecutionLogs';
+import ReasonChainViewer from '../explainability/ReasonChainViewer';
 import axios from 'axios';
 
 interface Agent {
@@ -109,10 +110,12 @@ interface AgentDetailProps {
 
 export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
   const agent = getAgentById(agentId);
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'settings' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'settings' | 'logs' | 'explanation'>('overview');
   const [executing, setExecuting] = useState(false);
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [executionSuccess, setExecutionSuccess] = useState<string | null>(null);
+  const [recentReasonChain, setRecentReasonChain] = useState<any | null>(null);
+  const [loadingReasonChain, setLoadingReasonChain] = useState(false);
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -133,6 +136,33 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
     }
   };
 
+  // Fetch the most recent ReasonChain for this agent
+  const fetchRecentReasonChain = async () => {
+    setLoadingReasonChain(true);
+    
+    try {
+      const response = await axios.get(`/api/explainability/reason-chain/by-source?sourceType=agent&sourceId=${agentId}&limit=1`);
+      
+      if (response.data.success && response.data.data.length > 0) {
+        setRecentReasonChain(response.data.data[0]);
+      } else {
+        setRecentReasonChain(null);
+      }
+    } catch (error) {
+      console.error('Error fetching reason chain:', error);
+      setRecentReasonChain(null);
+    } finally {
+      setLoadingReasonChain(false);
+    }
+  };
+  
+  // Fetch reason chain when switching to explanation tab
+  useEffect(() => {
+    if (activeTab === 'explanation') {
+      fetchRecentReasonChain();
+    }
+  }, [activeTab, agentId]);
+  
   // Execute agent manually
   const executeAgent = async () => {
     setExecuting(true);
@@ -234,6 +264,16 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
           onClick={() => setActiveTab('logs')}
         >
           Execution Logs
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'explanation' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('explanation')}
+        >
+          Explanation
         </button>
         <button
           className={`px-4 py-2 font-medium text-sm ${
@@ -409,6 +449,42 @@ export default function AgentDetail({ agentId, onBack }: AgentDetailProps) {
             accountId="mock-account-id" 
             limit={5}
           />
+        </div>
+      )}
+      
+      {/* Explanation Tab */}
+      {activeTab === 'explanation' && (
+        <div>
+          <div className="mb-4">
+            <h3 className="text-lg font-medium">Decision Explanation</h3>
+            <p className="text-sm text-text-secondary">
+              See why the agent made its decision and the reasoning process behind it
+            </p>
+          </div>
+          
+          {loadingReasonChain ? (
+            <Card className="p-6 text-center">
+              <div className="animate-pulse">Loading explanation data...</div>
+            </Card>
+          ) : recentReasonChain ? (
+            <ReasonChainViewer reasonChain={recentReasonChain} />
+          ) : (
+            <Card className="p-6 text-center">
+              <p>No explanation data available for this agent.</p>
+              <p className="text-sm text-text-secondary mt-2">
+                Run the agent to generate explanation data.
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                className="mt-4"
+                onClick={executeAgent}
+                disabled={executing}
+              >
+                {executing ? 'Running...' : 'Run Agent Now'}
+              </Button>
+            </Card>
+          )}
         </div>
       )}
       

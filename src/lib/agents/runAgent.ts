@@ -246,6 +246,26 @@ export async function runAgent(agent: Agent, inputContext: any) {
       }
     });
     
+    // Create a ReasonChain for explainability
+    try {
+      // Extract key reasoning steps from the response
+      const explanationSteps = extractReasoningSteps(modelResponse.response);
+      
+      // Create reason chain
+      await prisma.reasonChain.create({
+        data: {
+          sourceType: 'agent',
+          sourceId: agent.id,
+          conclusion: modelResponse.actionTaken || 'Analysis completed',
+          explanationSteps,
+          inputContext,
+        }
+      });
+    } catch (error) {
+      console.error('Error creating reason chain:', error);
+      // We don't want to fail the agent execution if reason chain creation fails
+    }
+    
     return {
       success: true,
       executionId: log.id,
@@ -276,4 +296,50 @@ export async function runAgent(agent: Agent, inputContext: any) {
       executionTime,
     };
   }
+}
+
+/**
+ * Extract reasoning steps from the agent response
+ * This is a simple implementation that can be enhanced with more advanced NLP techniques
+ */
+function extractReasoningSteps(response: string): any[] {
+  // Simple mock implementation that extracts numbered points or paragraphs
+  const steps: any[] = [];
+  
+  // Look for numbered lists (e.g., "1. First point")
+  const numberedPointsRegex = /(\d+)\.\s+([^\n]+)/g;
+  let match;
+  let stepCounter = 1;
+  
+  while ((match = numberedPointsRegex.exec(response)) !== null) {
+    steps.push({
+      step: stepCounter++,
+      reasoning: match[2],
+    });
+  }
+  
+  // If no numbered points found, split by paragraphs
+  if (steps.length === 0) {
+    const paragraphs = response
+      .split('\n\n')
+      .filter(p => p.trim().length > 0)
+      .slice(0, 5); // Limit to first 5 paragraphs
+    
+    paragraphs.forEach((p, index) => {
+      steps.push({
+        step: index + 1,
+        reasoning: p,
+      });
+    });
+  }
+  
+  // If still no steps, create a single step with the entire response
+  if (steps.length === 0) {
+    steps.push({
+      step: 1,
+      reasoning: response.substring(0, 500) + (response.length > 500 ? '...' : ''),
+    });
+  }
+  
+  return steps;
 } 
