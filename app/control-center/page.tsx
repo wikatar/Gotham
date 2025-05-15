@@ -7,6 +7,8 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
+import HistoricalMetricsChart from '../components/charts/HistoricalMetricsChart'
+import ActionFeed from '../components/dashboard/ActionFeed'
 
 // Mock account ID (replace with proper auth)
 const MOCK_ACCOUNT_ID = 'mock-account-id'
@@ -223,6 +225,16 @@ export default function ControlCenterPage() {
                 </div>
               </div>
             </Card>
+          </div>
+          
+          {/* Visualization and Action Feed Sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="lg:col-span-2">
+              <HistoricalMetricsChart title="System Metrics History" timeRange={7} />
+            </div>
+            <div>
+              <ActionFeed title="Recent Agent Actions" limit={8} />
+            </div>
           </div>
           
           {/* Search and Filters */}
