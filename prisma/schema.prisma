@@ -529,4 +529,21 @@ model ReasonChain {
 
   @@index([sourceType, sourceId])
   @@index([createdAt])
+}
+
+// Control Panel Snapshots - System status metrics
+model ControlPanelSnapshot {
+  id                 String   @id @default(cuid())
+  timestamp          DateTime @default(now())
+  totalAgents        Int
+  activeAgents       Int
+  failedAgents       Int
+  totalAnomalies     Int
+  resolvedAnomalies  Int
+  criticalIncidents  Int
+  lastAgentActivityAt DateTime?
+  systemHealthStatus String    // "healthy", "warning", "critical"
+  
+  @@index([timestamp])
+  @@index([systemHealthStatus])
 } 
