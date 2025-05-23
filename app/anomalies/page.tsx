@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import AppLayout from '../components/layout/AppLayout'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import AnomalyDetailModal from '../components/anomalies/AnomalyDetailModal'
 import { useIncidentCreation } from '../hooks/useIncidentCreation'
 
 // Sample anomaly data with IDs
@@ -13,7 +15,7 @@ const anomalies = [
     description: 'Website traffic dropped 45% in the last hour',
     severity: 'critical' as const,
     detectedAt: '23 minutes ago',
-    status: 'active'
+    status: 'active' as const
   },
   {
     id: 'anomaly_002', 
@@ -21,7 +23,7 @@ const anomalies = [
     description: 'Query response time increased by 200%',
     severity: 'high' as const,
     detectedAt: '1 hour ago',
-    status: 'active'
+    status: 'active' as const
   },
   {
     id: 'anomaly_003',
@@ -29,12 +31,13 @@ const anomalies = [
     description: 'Cancellation rate 3x higher than normal',
     severity: 'high' as const,
     detectedAt: '2 hours ago',
-    status: 'active'
+    status: 'active' as const
   }
 ]
 
 export default function AnomaliesPage() {
   const { createAnomalyIncident, creating } = useIncidentCreation()
+  const [selectedAnomaly, setSelectedAnomaly] = useState<typeof anomalies[0] | null>(null)
 
   const handleCreateIncident = async (anomaly: typeof anomalies[0]) => {
     try {
@@ -46,6 +49,11 @@ export default function AnomaliesPage() {
     } catch (error) {
       alert('Failed to create incident report')
     }
+  }
+
+  const handleAnomalyUpdate = () => {
+    // Refresh data or update state
+    console.log('Anomaly updated')
   }
 
   const getSeverityColor = (severity: string) => {
@@ -114,7 +122,13 @@ export default function AnomaliesPage() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="secondary" size="sm">Investigate</Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => setSelectedAnomaly(anomaly)}
+                  >
+                    Investigate
+                  </Button>
                   
                   {/* Show "Create Incident" for high and critical severity */}
                   {(anomaly.severity === 'high' || anomaly.severity === 'critical') && (
@@ -214,6 +228,14 @@ export default function AnomaliesPage() {
           </div>
         </Card>
       </div>
+      
+      {/* Anomaly Detail Modal */}
+      {selectedAnomaly && (
+        <AnomalyDetailModal
+          anomaly={selectedAnomaly}
+          onClose={() => setSelectedAnomaly(null)}
+          onUpdate={handleAnomalyUpdate}
+        />
     </AppLayout>
   )
 } 

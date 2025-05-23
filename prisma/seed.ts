@@ -122,11 +122,200 @@ async function main() {
     },
   });
 
+  // === COLLABORATION LAYER SEED DATA ===
+
+  // Create comment threads for missions
+  const missionThread1 = await prisma.commentThread.create({
+    data: {
+      entityType: 'mission',
+      entityId: mission1.id,
+    },
+  });
+
+  const missionThread2 = await prisma.commentThread.create({
+    data: {
+      entityType: 'mission',
+      entityId: mission2.id,
+    },
+  });
+
+  // Create comment threads for incidents
+  const incidentThread1 = await prisma.commentThread.create({
+    data: {
+      entityType: 'incident',
+      entityId: incident1.id,
+    },
+  });
+
+  const incidentThread2 = await prisma.commentThread.create({
+    data: {
+      entityType: 'incident',
+      entityId: incident2.id,
+    },
+  });
+
+  // Create comment threads for anomalies
+  const anomalyThread1 = await prisma.commentThread.create({
+    data: {
+      entityType: 'anomaly',
+      entityId: anomaly1.id,
+    },
+  });
+
+  // Create sample comments for mission 1
+  await prisma.comment.create({
+    data: {
+      threadId: missionThread1.id,
+      author: 'alice@gotham.se',
+      authorName: 'Alice Johnson',
+      content: 'Vi behöver fokusera på APAC-regionen. Ser ut som att churn-problemet är allvarligare än förväntat.',
+      createdAt: new Date('2024-01-02T09:15:00Z'),
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      threadId: missionThread1.id,
+      author: 'bob@gotham.se',
+      authorName: 'Bob Wilson',
+      content: 'Håller med Alice. Jag kan köra en djupare analys av kundsegmenten i APAC. Ger er rapport senast imorgon.',
+      createdAt: new Date('2024-01-02T14:30:00Z'),
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      threadId: missionThread1.id,
+      author: 'carol@gotham.se',
+      authorName: 'Carol Davis',
+      content: 'Bra Bob! Jag tar och kontaktar våra team leads i Singapore och Tokyo för att höra om de märkt något lokalt.',
+      createdAt: new Date('2024-01-03T08:45:00Z'),
+    },
+  });
+
+  // Create comments for incident 1
+  await prisma.comment.create({
+    data: {
+      threadId: incidentThread1.id,
+      author: 'alice@gotham.se',
+      authorName: 'Alice Johnson',
+      content: 'Anomalin är kopplad till vår Q1-mission. Vi borde prioritera denna undersökning.',
+      createdAt: new Date('2024-01-15T09:00:00Z'),
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      threadId: incidentThread1.id,
+      author: 'devops@gotham.se',
+      authorName: 'DevOps Team',
+      content: 'Satt status till "investigating". Tilldelat till Alice och Bob för djupare analys.',
+      createdAt: new Date('2024-01-15T09:30:00Z'),
+    },
+  });
+
+  // Create comments for resolved incident
+  await prisma.comment.create({
+    data: {
+      threadId: incidentThread2.id,
+      author: 'ops-team@gotham.se',
+      authorName: 'Ops Team',
+      content: 'Problemet identifierat! Det var en konfigurationsfel i Stripe-integrationen. Fixar nu.',
+      createdAt: new Date('2024-01-14T11:20:00Z'),
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      threadId: incidentThread2.id,
+      author: 'ops-team@gotham.se',
+      authorName: 'Ops Team',
+      content: 'Fix deployd och testad. Payment rate tillbaka till normala nivåer. Incident resolved.',
+      createdAt: new Date('2024-01-14T16:45:00Z'),
+    },
+  });
+
+  // Create comments for anomaly
+  await prisma.comment.create({
+    data: {
+      threadId: anomalyThread1.id,
+      author: 'data-analyst@gotham.se',
+      authorName: 'Data Analysis Team',
+      content: 'Intressant pattern. Ser ut som att churn-ökningen bara drabbar premium-kunder i APAC. Kan vara relaterat till prisförändringar?',
+      createdAt: new Date('2024-01-15T10:15:00Z'),
+    },
+  });
+
+  // Create activity logs for audit trail
+  const activities = [
+    {
+      entityType: 'mission',
+      entityId: mission1.id,
+      action: 'created',
+      actor: 'admin@gotham.se',
+      actorName: 'System Admin',
+      description: 'Skapade mission "Customer Retention Initiative Q1"',
+      createdAt: new Date('2024-01-01T08:00:00Z'),
+    },
+    {
+      entityType: 'mission',
+      entityId: mission1.id,
+      action: 'commented',
+      actor: 'alice@gotham.se',
+      actorName: 'Alice Johnson',
+      description: 'Lade till kommentar om APAC-fokus',
+      createdAt: new Date('2024-01-02T09:15:00Z'),
+    },
+    {
+      entityType: 'incident',
+      entityId: incident1.id,
+      action: 'created',
+      actor: 'system-auto-detection',
+      actorName: 'System',
+      description: 'Incident skapad automatiskt från anomaly detection',
+      createdAt: new Date('2024-01-15T08:30:00Z'),
+    },
+    {
+      entityType: 'incident',
+      entityId: incident1.id,
+      action: 'updated',
+      actor: 'devops@gotham.se',
+      actorName: 'DevOps Team',
+      description: 'Status ändrad till "investigating"',
+      createdAt: new Date('2024-01-15T09:30:00Z'),
+    },
+    {
+      entityType: 'incident',
+      entityId: incident2.id,
+      action: 'resolved',
+      actor: 'ops-team@gotham.se',
+      actorName: 'Ops Team',
+      description: 'Incident löst - Stripe-konfiguration fixad',
+      createdAt: new Date('2024-01-14T16:45:00Z'),
+    },
+    {
+      entityType: 'anomaly',
+      entityId: anomaly1.id,
+      action: 'commented',
+      actor: 'data-analyst@gotham.se',
+      actorName: 'Data Analysis Team',
+      description: 'Lade till analys om premium-kunders churn pattern',
+      createdAt: new Date('2024-01-15T10:15:00Z'),
+    },
+  ];
+
+  for (const activity of activities) {
+    await prisma.activityLog.create({ data: activity });
+  }
+
   console.log('✅ Seed completed successfully!');
   console.log(`Created:`);
   console.log(`- ${2} anomalies`);
   console.log(`- ${2} missions`);
   console.log(`- ${4} incident reports`);
+  console.log(`- ${5} comment threads`);
+  console.log(`- ${8} comments`);
+  console.log(`- ${6} activity log entries`);
 }
 
 main()

@@ -65,4 +65,60 @@ model IncidentReport {
   anomaly Anomaly? @relation(fields: [sourceId], references: [id])
 
   @@map("incident_reports")
+}
+
+// === COLLABORATION LAYER ===
+
+// Comment Thread - en diskussionstråd kopplad till vilken entitet som helst
+model CommentThread {
+  id          String   @id @default(cuid())
+  entityType  String   // "mission" | "agent" | "incident" | "anomaly" | "execution"
+  entityId    String   // t.ex. mission.id eller agent.id
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  comments    Comment[]
+  
+  // Composite unique constraint - en tråd per entitet
+  @@unique([entityType, entityId])
+  @@index([entityType, entityId])
+  @@map("comment_threads")
+}
+
+// Kommentar i en diskussionstråd
+model Comment {
+  id             String        @id @default(cuid())
+  threadId       String
+  author         String        // userId eller email
+  authorName     String?       // display name för användaren
+  content        String        // kommentarens innehåll
+  createdAt      DateTime      @default(now())
+  editedAt       DateTime?     // när kommentaren senast redigerades
+  edited         Boolean       @default(false)
+  deleted        Boolean       @default(false) // soft delete
+  
+  // Relations
+  thread         CommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  @@index([threadId])
+  @@index([createdAt])
+  @@map("comments")
+}
+
+// Aktivitetslogg för audit trail och historik
+model ActivityLog {
+  id          String   @id @default(cuid())
+  entityType  String   // "mission" | "agent" | "incident" | "anomaly" | "comment"
+  entityId    String   // ID till den berörda entiteten
+  action      String   // "created" | "updated" | "deleted" | "commented" | "resolved" | "assigned"
+  actor       String   // userId eller email för personen som utförde handlingen
+  actorName   String?  // display name för användaren
+  description String?  // beskrivning av vad som hände
+  metadata    String?  // JSON som sträng för extra data (SQLite kompatibilitet)
+  createdAt   DateTime @default(now())
+  
+  @@index([entityType, entityId])
+  @@index([actor])
+  @@index([createdAt])
+  @@map("activity_logs")
 } 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Button from '../ui/Button'
+import { CollaborationPanel } from '../collaboration'
+import { ActivityLogger, logActivity } from '@/app/utils/activityLogger'
 
 interface IncidentReport {
   id: string
@@ -30,7 +32,7 @@ export default function IncidentDetailModal({
   onClose, 
   onUpdate 
 }: IncidentDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'details' | 'source' | 'edit'>('details')
+  const [activeTab, setActiveTab] = useState<'details' | 'source' | 'edit' | 'collaboration'>('details')
   const [sourceData, setSourceData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [editData, setEditData] = useState({
@@ -41,6 +43,13 @@ export default function IncidentDetailModal({
     tags: incident.tags.join(', ')
   })
   const [updating, setUpdating] = useState(false)
+
+  // Current user (in a real app, this would come from auth context)
+  const currentUser = {
+    id: 'current-user',
+    name: 'Current User',
+    email: 'user@gotham.se'
+  }
 
   // Load source data when showing source tab
   useEffect(() => {
@@ -83,6 +92,40 @@ export default function IncidentDetailModal({
 
       const data = await response.json()
       if (data.success) {
+        // Log activities för ändringar
+        if (editData.status !== incident.status) {
+          await ActivityLogger.incidentStatusChanged(
+            incident.id,
+            currentUser.email,
+            incident.status,
+            editData.status,
+            currentUser.name
+          )
+        }
+
+        if (editData.severity !== incident.severity) {
+          await logActivity({
+            entityType: 'incident',
+            entityId: incident.id,
+            action: 'severity_changed',
+            actor: currentUser.email,
+            actorName: currentUser.name,
+            description: `Ändrade allvarlighetsgrad från "${incident.severity}" till "${editData.severity}"`,
+            metadata: { oldSeverity: incident.severity, newSeverity: editData.severity }
+          })
+        }
+
+        if (editData.title !== incident.title || editData.description !== incident.description) {
+          await logActivity({
+            entityType: 'incident',
+            entityId: incident.id,
+            action: 'updated',
+            actor: currentUser.email,
+            actorName: currentUser.name,
+            description: 'Uppdaterade incident-detaljer'
+          })
+        }
+
         onUpdate()
       }
     } catch (error) {
@@ -108,6 +151,15 @@ export default function IncidentDetailModal({
 
       const data = await response.json()
       if (data.success) {
+        // Log status change
+        await ActivityLogger.incidentStatusChanged(
+          incident.id,
+          currentUser.email,
+          incident.status,
+          newStatus,
+          currentUser.name
+        )
+
         onUpdate()
       }
     } catch (error) {
@@ -305,7 +357,7 @@ export default function IncidentDetailModal({
 
         {/* Tabs */}
         <div className="flex border-b border-secondary/20">
-          {['details', 'source', 'edit'].map(tab => (
+          {['details', 'source', 'edit', 'collaboration'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -318,6 +370,7 @@ export default function IncidentDetailModal({
               {tab === 'details' && '📋 Details'}
               {tab === 'source' && '🔍 Source Data'}
               {tab === 'edit' && '✏️ Edit'}
+              {tab === 'collaboration' && '🤝 Collaboration'}
             </button>
           ))}
         </div>
@@ -489,6 +542,18 @@ export default function IncidentDetailModal({
                   {updating ? 'Updating...' : 'Update Incident'}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'collaboration' && (
+            <div>
+              <h3 className="text-lg font-medium mb-3">Collaboration</h3>
+              <CollaborationPanel 
+                entityType="incident"
+                entityId={incident.id}
+                currentUser={currentUser}
+                className="border-0 rounded-none"
+              />
             </div>
           )}
         </div>

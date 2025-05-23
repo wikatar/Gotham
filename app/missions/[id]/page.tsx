@@ -11,6 +11,7 @@ import ObjectiveCard from '../../components/missions/ObjectiveCard';
 import ActionItem from '../../components/missions/ActionItem';
 import AiRecommendationTab from '../../components/missions/AiRecommendationTab';
 import AssignedAgentsTab from '../../components/missions/AssignedAgentsTab';
+import { CollaborationPanel } from '../../components/collaboration';
 import { SAMPLE_ENHANCED_MISSIONS } from '../../components/missions/sampleData';
 import { EnhancedMission, MissionAction } from '../../components/missions/types';
 import Link from 'next/link';
@@ -25,8 +26,15 @@ function formatDate(date: Date) {
 export default function MissionDetailPage() {
   const params = useParams();
   const [mission, setMission] = useState<EnhancedMission | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'kpis' | 'actions' | 'recommendations' | 'agents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'kpis' | 'actions' | 'recommendations' | 'agents' | 'collaboration'>('overview');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Current user (in a real app, this would come from auth context)
+  const currentUser = {
+    id: 'current-user',
+    name: 'Current User',
+    email: 'user@gotham.se'
+  }
   
   // Fetch mission data based on ID
   useEffect(() => {
@@ -198,6 +206,16 @@ export default function MissionDetailPage() {
           onClick={() => setActiveTab('agents')}
         >
           Agents
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'collaboration' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('collaboration')}
+        >
+          Collaboration
         </button>
       </div>
       
@@ -447,6 +465,24 @@ export default function MissionDetailPage() {
       {/* Agents Tab */}
       {activeTab === 'agents' && (
         <AssignedAgentsTab missionId={mission.id} />
+      )}
+
+      {/* Collaboration Tab */}
+      {activeTab === 'collaboration' && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold">Collaboration</h2>
+            <p className="text-text-secondary mt-1">
+              Collaborate with team members on this mission through comments and activity tracking.
+            </p>
+          </div>
+          
+          <CollaborationPanel 
+            entityType="mission"
+            entityId={mission.id}
+            currentUser={currentUser}
+          />
+        </div>
       )}
     </AppLayout>
   );
