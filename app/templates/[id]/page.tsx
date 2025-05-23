@@ -43,7 +43,22 @@ export default function MissionDashboardPage({ params }) {
       <AppLayout>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <div className="text-2xl mb-2 opacity-30">Loading...</div>
+            <div className="text-2xl mb-2 opacity-30">Loading mission...</div>
+            <div className="text-text-secondary">Please wait while we load your mission data</div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Additional safety check for critical mission properties
+  if (!currentMission.name) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="text-2xl mb-2 text-red-500">⚠️ Mission Error</div>
+            <div className="text-text-secondary">Mission data is incomplete. Please try again.</div>
           </div>
         </div>
       </AppLayout>
@@ -87,24 +102,24 @@ export default function MissionDashboardPage({ params }) {
               <div>
                 <div className="text-sm text-text-secondary mb-1">Team</div>
                 <div className="flex flex-wrap gap-2">
-                  {currentMission.team.map(member => (
+                  {currentMission.team?.map(member => (
                     <div key={member.id} className="flex items-center text-sm bg-secondary/10 rounded-full px-3 py-1">
                       <div className="w-6 h-6 rounded-full bg-secondary/30 mr-2"></div>
                       <div>{member.name}</div>
                     </div>
-                  ))}
+                  )) || <div className="text-sm text-text-secondary">No team members assigned</div>}
                 </div>
               </div>
               
               <div>
                 <div className="text-sm text-text-secondary mb-1">Data Sources</div>
                 <div className="flex flex-col gap-1">
-                  {currentMission.dataSources.map(source => (
+                  {currentMission.dataSources?.map(source => (
                     <div key={source.id} className="text-sm">
                       <span className="font-medium">{source.name}</span>
                       <span className="text-text-secondary ml-1">({source.type})</span>
                     </div>
-                  ))}
+                  )) || <div className="text-sm text-text-secondary">No data sources connected</div>}
                 </div>
               </div>
             </div>
