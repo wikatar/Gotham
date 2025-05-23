@@ -6,568 +6,63 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-// Accounts - for multi-tenancy
-model Account {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  users          User[]
-  entities       Entity[]
-  relations      Relation[]
-  missions       Mission[]
-  models         Model[]
-  modelExecutions ModelExecution[]
-  agents         Agent[]
-  feeds          Feed[]
-  logs           Log[]
-  anomalies      Anomaly[]
-  pipelines      Pipeline[]
-  pipelineSchedules PipelineSchedule[]
-  pipelineExecutions PipelineExecution[]
-  dataSources    DataSource[]
-  dataSourceSyncs DataSourceSync[]
-  agentExecutionLogs AgentExecutionLog[]
-  agentFeedback  AgentFeedback[]
-}
-
-// Users
-model User {
-  id        String   @id @default(uuid())
-  accountId String
-  email     String   @unique
-  name      String
-  role      String   // admin, analyst, viewer
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  account   Account @relation(fields: [accountId], references: [id])
-  missions  Mission[]
-  models    Model[]
-  agents    Agent[]
-  pipelineExecutions PipelineExecution[]
-
-  @@index([accountId])
-}
-
-// Entities
-model Entity {
-  id          String   @id @default(uuid())
-  accountId   String
-  name        String
-  type        String   // user, project, team, etc.
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  account           Account   @relation(fields: [accountId], references: [id])
-  sourceRelations   Relation[] @relation("SourceRelation")
-  targetRelations   Relation[] @relation("TargetRelation")
-
-  @@index([accountId])
-  @@index([type])
-}
-
-// Relations between entities
-model Relation {
-  id          String   @id @default(uuid())
-  accountId   String
-  sourceId    String
-  targetId    String
-  type        String   // belongs_to, manages, etc.
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  account     Account   @relation(fields: [accountId], references: [id])
-  source      Entity    @relation("SourceRelation", fields: [sourceId], references: [id])
-  target      Entity    @relation("TargetRelation", fields: [targetId], references: [id])
-
-  @@index([accountId])
-  @@index([sourceId])
-  @@index([targetId])
-  @@index([type])
-}
-
-// Missions (goal-based work)
 model Mission {
-  id          String   @id @default(uuid())
-  accountId   String
+  id          String   @id @default(cuid())
   name        String
   description String?
-  ownerId     String?
+  startDate   DateTime
+  endDate     DateTime?
   status      String   // active, completed, cancelled
-  kpis        Json?    // Array of KPI definitions
-  metadata    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  account     Account   @relation(fields: [accountId], references: [id])
-  owner       User?     @relation(fields: [ownerId], references: [id])
+  incidentReports IncidentReport[]
 
-  @@index([accountId])
-  @@index([ownerId])
-  @@index([status])
+  @@map("missions")
 }
 
-// Models (AI/ML models)
-model Model {
-  id          String   @id @default(uuid())
-  accountId   String
-  name        String
-  description String?
-  endpoint    String?
-  version     String
-  createdById String
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  account         Account          @relation(fields: [accountId], references: [id])
-  createdBy       User             @relation(fields: [createdById], references: [id])
-  modelExecutions ModelExecution[]
-
-  @@index([accountId])
-  @@index([createdById])
-}
-
-// Model Executions
-model ModelExecution {
-  id          String   @id @default(uuid())
-  accountId   String
-  modelId     String
-  input       Json
-  output      Json?
-  status      String   // pending, success, error
-  error       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  account     Account   @relation(fields: [accountId], references: [id])
-  model       Model     @relation(fields: [modelId], references: [id])
-
-  @@index([accountId])
-  @@index([modelId])
-  @@index([status])
-}
-
-// Agents (action modules)
-model Agent {
-  id              String   @id @default(uuid())
-  accountId       String
-  name            String
-  description     String?
-  triggerType     String   // event, schedule, manual
-  actionType      String   // slack, email, webhook, etc.
-  parameters      Json?
-  createdById     String
-  status          String   // active, inactive
-  trustScore      Float?   // Score 0-1 representing reliability based on feedback
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-  createdBy       User      @relation(fields: [createdById], references: [id])
-  executionLogs   AgentExecutionLog[]
-
-  @@index([accountId])
-  @@index([createdById])
-  @@index([triggerType])
-  @@index([actionType])
-  @@index([status])
-}
-
-// Data Feeds
-model Feed {
-  id              String   @id @default(uuid())
-  accountId       String
-  name            String
-  description     String?
-  sourceType      String   // api, database, file, etc.
-  configuration   Json?
-  status          String   // active, inactive, error
-  lastSyncedAt    DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-
-  @@index([accountId])
-  @@index([sourceType])
-  @@index([status])
-}
-
-// Logs
-model Log {
-  id              String   @id @default(uuid())
-  accountId       String
-  type            String   // model_execution, agent_execution, etc.
-  action          String
-  resourceId      String?
-  resourceType    String?
-  metadata        Json?
-  createdAt       DateTime @default(now())
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-
-  @@index([accountId])
-  @@index([type])
-  @@index([resourceType, resourceId])
-  @@index([createdAt])
-}
-
-// Anomalies
 model Anomaly {
-  id              String   @id @default(uuid())
-  accountId       String
-  type            String   // data, flow, output
-  severity        String   // low, medium, high, critical
-  description     String
-  resourceId      String?
-  resourceType    String?
-  metadata        Json?
-  resolved        Boolean  @default(false)
-  resolvedAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-
-  @@index([accountId])
-  @@index([type])
-  @@index([severity])
-  @@index([resolved])
-  @@index([resourceType, resourceId])
-}
-
-// Pipelines
-model Pipeline {
-  id              String   @id @default(uuid())
-  accountId       String
-  name            String
-  missionId       String
-  description     String?
-  category        String?  // geo, finance, hr, etc.
-  nodes           Json     // Serialized pipeline nodes
-  edges           Json?    // Connections between nodes
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-  schedules       PipelineSchedule[]
-  executions      PipelineExecution[]
-
-  @@index([accountId])
-  @@index([missionId])
-  @@index([category])
-}
-
-// Pipeline Schedules
-model PipelineSchedule {
-  id              String   @id @default(uuid())
-  accountId       String
-  pipelineId      String
-  cron            String   // e.g. "0 8 * * *" (every day at 8 AM)
-  active          Boolean  @default(true)
-  lastRunAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-  pipeline        Pipeline  @relation(fields: [pipelineId], references: [id])
-
-  @@index([accountId])
-  @@index([pipelineId])
-  @@index([active])
-}
-
-// Pipeline Executions
-model PipelineExecution {
-  id         String   @id @default(cuid())
-  pipelineId String
-  startedAt  DateTime @default(now())
-  endedAt    DateTime?
-  status     String   // success | error | pending
-  input      Json
-  output     Json?
-  error      String?
-  accountId  String
-  userId     String?  // Can be null for system-triggered executions
-  
-  // Relations
-  account    Account @relation(fields: [accountId], references: [id])
-  user       User?   @relation(fields: [userId], references: [id])
-  pipeline   Pipeline @relation(fields: [pipelineId], references: [id])
-  
-  @@index([pipelineId])
-  @@index([accountId])
-  @@index([userId])
-  @@index([status])
-  @@index([startedAt])
-}
-
-// Data Sources (imported data)
-model DataSource {
-  id          String   @id @default(cuid())
-  name        String
-  mapping     Json
-  importedAt  DateTime
-  recordCount Int
-  accountId   String
-  sourceType  String   // api, database, file, csv, json, etc.
-  
-  // Relations
-  account     Account  @relation(fields: [accountId], references: [id])
-  rows        DataRow[]
-  cleaningPipelines DataCleaningPipeline[]
-  cleanedRows CleanedRow[]
-  syncs       DataSourceSync[]
-  syncLogs    DataSyncLog[]
-  
-  @@index([accountId])
-  @@index([sourceType])
-}
-
-model DataRow {
-  id        String   @id @default(cuid())
-  sourceId  String
-  row       Json
-  createdAt DateTime @default(now())
-  
-  // Relations
-  source    DataSource @relation(fields: [sourceId], references: [id])
-  
-  @@index([sourceId])
-}
-
-model DataCleaningPipeline {
-  id          String   @id @default(cuid())
-  sourceId    String
-  name        String
-  steps       Json
-  createdAt   DateTime @default(now())
-  
-  // Relations
-  dataSource  DataSource @relation(fields: [sourceId], references: [id])
-  cleanedRows CleanedRow[]
-  
-  @@index([sourceId])
-}
-
-model CleanedRow {
-  id          String   @id @default(cuid())
-  sourceId    String
-  pipelineId  String
-  row         Json
-  createdAt   DateTime @default(now())
-
-  // Relations
-  dataSource  DataSource @relation(fields: [sourceId], references: [id])
-  pipeline    DataCleaningPipeline @relation(fields: [pipelineId], references: [id])
-  
-  @@index([sourceId])
-  @@index([pipelineId])
-}
-
-// Data Source Synchronization Schedule
-model DataSourceSync {
   id           String   @id @default(cuid())
-  sourceId     String
-  accountId    String
-  name         String
+  title        String
   description  String?
-  // Sync configuration
-  syncType     String   // cron, interval, manual
-  interval     Int?     // In minutes, if syncType is interval
-  cron         String?  // Cron expression, if syncType is cron
-  config       Json     // Connection details (API keys, URLs, SQL connection, etc.)
-  active       Boolean  @default(true)
-  // Link to cleaning pipeline
-  runPipeline  Boolean  @default(false)
-  pipelineId   String?
-  lastSyncAt   DateTime?
-  nextSyncAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  severity     String   // low, medium, high, critical
+  resourceId   String?
+  resourceType String?
+  metadata     String?  // JSON as string for SQLite
+  resolved     Boolean  @default(false)
+  resolvedAt   DateTime?
+  detectedAt   DateTime @default(now())
 
   // Relations
-  account      Account     @relation(fields: [accountId], references: [id])
-  dataSource   DataSource  @relation(fields: [sourceId], references: [id])
-  syncLogs     DataSyncLog[]
+  incidentReports IncidentReport[]
 
-  @@index([sourceId])
-  @@index([accountId])
-  @@index([active])
-  @@index([syncType])
-  @@index([nextSyncAt])
+  @@map("anomalies")
 }
 
-// Log of data synchronization executions
-model DataSyncLog {
-  id           String   @id @default(cuid())
-  syncId       String?  // Can be null for manual imports
-  sourceId     String
-  startedAt    DateTime @default(now())
-  endedAt      DateTime?
-  status       String   // pending, success, error
-  recordCount  Int      @default(0)
-  error        String?
-  details      Json?
-  triggeredBy  String   // system, user, etc.
+// Incident Report Model
+model IncidentReport {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  sourceType     String   // agent | anomaly | manual
+  sourceId       String?  // referens till agent eller anomaly
+  missionId      String?  // koppla till uppdrag
+  status         String   // open | investigating | resolved
+  severity       String   // low | medium | high | critical
+  tags           String   // Comma-separated tags for SQLite compatibility
+  createdBy      String?  // userId eller email (kan byggas ut senare)
+  readToken      String   @unique // för säker delning
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  sync         DataSourceSync? @relation(fields: [syncId], references: [id])
-  dataSource   DataSource @relation(fields: [sourceId], references: [id])
+  mission Mission? @relation(fields: [missionId], references: [id])
+  anomaly Anomaly? @relation(fields: [sourceId], references: [id])
 
-  @@index([syncId])
-  @@index([sourceId])
-  @@index([status])
-  @@index([startedAt])
-}
-
-// ==========================================
-// Semantic Modeling - Entity Type Definitions
-// ==========================================
-
-// EntityType - Defines the semantic entity types in the system
-model EntityType {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  fieldMaps        EntityFieldMap[]
-  sourceRelations  EntityRelation[] @relation("FromEntityType")
-  targetRelations  EntityRelation[] @relation("ToEntityType")
-}
-
-// EntityFieldMap - Maps cleaned data fields to semantic entity fields
-model EntityFieldMap {
-  id               String   @id @default(cuid())
-  entityTypeId     String
-  cleanedFieldName String
-  semanticName     String
-  createdAt        DateTime @default(now())
-
-  // Relations
-  entityType       EntityType @relation(fields: [entityTypeId], references: [id])
-
-  @@index([entityTypeId])
-  @@index([cleanedFieldName])
-}
-
-// EntityRelation - Defines relationships between entity types
-model EntityRelation {
-  id               String   @id @default(cuid())
-  fromEntityTypeId String
-  toEntityTypeId   String
-  relationType     String   // hasMany, hasOne, belongsTo
-  description      String?
-  createdAt        DateTime @default(now())
-
-  // Relations
-  fromEntityType   EntityType @relation("FromEntityType", fields: [fromEntityTypeId], references: [id])
-  toEntityType     EntityType @relation("ToEntityType", fields: [toEntityTypeId], references: [id])
-
-  @@index([fromEntityTypeId])
-  @@index([toEntityTypeId])
-  @@index([relationType])
-}
-
-// Agent Execution Logs
-model AgentExecutionLog {
-  id              String   @id @default(uuid())
-  accountId       String
-  agentId         String
-  prompt          String   @db.Text
-  response        String?  @db.Text
-  inputContext    Json?
-  executionTime   Int?     // in milliseconds
-  actionTaken     String?
-  status          String   // success, error, pending
-  error           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  account         Account   @relation(fields: [accountId], references: [id])
-  agent           Agent     @relation(fields: [agentId], references: [id])
-  feedback        AgentFeedback[]
-
-  @@index([accountId])
-  @@index([agentId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-// Explainability - Reason Chains
-model ReasonChain {
-  id               String   @id @default(cuid())
-  sourceType       String   // "agent", "rule", "anomaly"
-  sourceId         String   // ID to the agent, rule, etc. that generated this
-  conclusion       String   // What the decision/action was
-  explanationSteps Json     // List of reasoning chain steps in order
-  inputContext     Json     // Context: data, mission, etc.
-  createdAt        DateTime @default(now())
-
-  @@index([sourceType, sourceId])
-  @@index([createdAt])
-}
-
-// Control Panel Snapshots - System status metrics
-model ControlPanelSnapshot {
-  id                 String   @id @default(cuid())
-  timestamp          DateTime @default(now())
-  totalAgents        Int
-  activeAgents       Int
-  failedAgents       Int
-  totalAnomalies     Int
-  resolvedAnomalies  Int
-  criticalIncidents  Int
-  lastAgentActivityAt DateTime?
-  systemHealthStatus String    // "healthy", "warning", "critical"
-  
-  @@index([timestamp])
-  @@index([systemHealthStatus])
-}
-
-// Agent Feedback
-model AgentFeedback {
-  id              String   @id @default(cuid())
-  executionLogId  String
-  accountId       String
-  rating          Int      // scale 1-5
-  comment         String?
-  wasActionEffective Boolean?
-  measuredImpact  Json?    // e.g. {"churnDrop": 12, "responseRate": 0.4}
-  createdAt       DateTime @default(now())
-
-  // Relations
-  executionLog    AgentExecutionLog @relation(fields: [executionLogId], references: [id])
-  account         Account @relation(fields: [accountId], references: [id])
-
-  @@index([executionLogId])
-  @@index([accountId])
-  @@index([rating])
-  @@index([wasActionEffective])
+  @@map("incident_reports")
 } 

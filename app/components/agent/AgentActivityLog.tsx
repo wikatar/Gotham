@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { useIncidentCreation } from '../../hooks/useIncidentCreation';
 
 interface ActivityLogItem {
   id: string;
@@ -94,6 +95,7 @@ export default function AgentActivityLog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const { createAgentIncident, creating } = useIncidentCreation();
 
   // Get filtered logs
   const filteredLogs = sampleActivityLogs.filter(log => {
@@ -118,6 +120,18 @@ export default function AgentActivityLog() {
       case 'failure': return 'bg-red-100 text-red-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleCreateIncident = async (log: ActivityLogItem) => {
+    try {
+      await createAgentIncident(
+        log.id, 
+        log.agentName, 
+        `${log.action}: ${log.details}`
+      );
+    } catch (error) {
+      alert('Failed to create incident report')
     }
   };
 
@@ -194,13 +208,35 @@ export default function AgentActivityLog() {
                   
                   <p className="mb-3">{log.details}</p>
                   
-                  <div className="flex justify-end">
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                    >
-                      View Details
-                    </Button>
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="secondary" 
+                        size="sm"
+                      >
+                        View Details
+                      </Button>
+                      
+                      {/* Show "Create Incident" for failures or concerning activities */}
+                      {(log.status === 'failure' || 
+                        log.details.toLowerCase().includes('alert') ||
+                        log.details.toLowerCase().includes('anomaly') ||
+                        log.details.toLowerCase().includes('error')) && (
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => handleCreateIncident(log)}
+                          disabled={creating}
+                          className="text-orange-600 hover:text-orange-700"
+                        >
+                          📋 Create Incident
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="text-xs text-text-secondary">
+                      ID: {log.id}
+                    </div>
                   </div>
                 </div>
               ))

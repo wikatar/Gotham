@@ -3,8 +3,69 @@
 import AppLayout from '../components/layout/AppLayout'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import { useIncidentCreation } from '../hooks/useIncidentCreation'
+
+// Sample anomaly data with IDs
+const anomalies = [
+  {
+    id: 'anomaly_001',
+    title: 'Unusual Traffic Pattern',
+    description: 'Website traffic dropped 45% in the last hour',
+    severity: 'critical' as const,
+    detectedAt: '23 minutes ago',
+    status: 'active'
+  },
+  {
+    id: 'anomaly_002', 
+    title: 'Database Query Performance',
+    description: 'Query response time increased by 200%',
+    severity: 'high' as const,
+    detectedAt: '1 hour ago',
+    status: 'active'
+  },
+  {
+    id: 'anomaly_003',
+    title: 'Customer Churn Spike',
+    description: 'Cancellation rate 3x higher than normal',
+    severity: 'high' as const,
+    detectedAt: '2 hours ago',
+    status: 'active'
+  }
+]
 
 export default function AnomaliesPage() {
+  const { createAnomalyIncident, creating } = useIncidentCreation()
+
+  const handleCreateIncident = async (anomaly: typeof anomalies[0]) => {
+    try {
+      await createAnomalyIncident(
+        anomaly.id,
+        anomaly.title,
+        anomaly.severity
+      )
+    } catch (error) {
+      alert('Failed to create incident report')
+    }
+  }
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'bg-red-50 border-red-200 text-red-800'
+      case 'high': return 'bg-orange-50 border-orange-200 text-orange-800'
+      case 'medium': return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+      default: return 'bg-gray-50 border-gray-200 text-gray-800'
+    }
+  }
+
+  const getSeverityDot = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'bg-red-500'
+      case 'high': return 'bg-orange-500'
+      case 'medium': return 'bg-yellow-500'
+      default: return 'bg-gray-500'
+    }
+  }
+
   return (
     <AppLayout>
       <div className="mb-6">
@@ -39,50 +100,39 @@ export default function AnomaliesPage() {
       <Card title="Active Anomalies" className="mb-6">
         <div className="p-4">
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                <div>
-                  <div className="font-medium text-red-800">Unusual Traffic Pattern</div>
-                  <div className="text-sm text-red-600">Website traffic dropped 45% in the last hour</div>
-                  <div className="text-xs text-red-500 mt-1">Detected 23 minutes ago</div>
+            {anomalies.map((anomaly) => (
+              <div 
+                key={anomaly.id}
+                className={`flex items-center justify-between p-4 rounded-lg ${getSeverityColor(anomaly.severity)}`}
+              >
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 rounded-full mr-3 ${getSeverityDot(anomaly.severity)}`}></div>
+                  <div>
+                    <div className="font-medium">{anomaly.title}</div>
+                    <div className="text-sm">{anomaly.description}</div>
+                    <div className="text-xs mt-1">Detected {anomaly.detectedAt}</div>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button variant="secondary" size="sm">Investigate</Button>
+                  
+                  {/* Show "Create Incident" for high and critical severity */}
+                  {(anomaly.severity === 'high' || anomaly.severity === 'critical') && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => handleCreateIncident(anomaly)}
+                      disabled={creating}
+                      className="text-orange-600 hover:text-orange-700"
+                    >
+                      📋 Create Incident
+                    </Button>
+                  )}
+                  
+                  <Button variant="primary" size="sm">Resolve</Button>
                 </div>
               </div>
-              <div className="flex space-x-2">
-                <Button variant="secondary" size="sm">Investigate</Button>
-                <Button variant="primary" size="sm">Resolve</Button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                <div>
-                  <div className="font-medium text-yellow-800">Database Query Performance</div>
-                  <div className="text-sm text-yellow-600">Query response time increased by 200%</div>
-                  <div className="text-xs text-yellow-500 mt-1">Detected 1 hour ago</div>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="secondary" size="sm">Investigate</Button>
-                <Button variant="primary" size="sm">Resolve</Button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-                <div>
-                  <div className="font-medium text-orange-800">Customer Churn Spike</div>
-                  <div className="text-sm text-orange-600">Cancellation rate 3x higher than normal</div>
-                  <div className="text-xs text-orange-500 mt-1">Detected 2 hours ago</div>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="secondary" size="sm">Investigate</Button>
-                <Button variant="primary" size="sm">Resolve</Button>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </Card>

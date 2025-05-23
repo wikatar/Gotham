@@ -9,6 +9,7 @@ import { formatDistanceToNow } from 'date-fns'
 import axios from 'axios'
 import HistoricalMetricsChart from '../components/charts/HistoricalMetricsChart'
 import ActionFeed from '../components/dashboard/ActionFeed'
+import { useIncidentCreation } from '../hooks/useIncidentCreation'
 
 // Mock account ID (replace with proper auth)
 const MOCK_ACCOUNT_ID = 'mock-account-id'
@@ -24,6 +25,9 @@ export default function ControlCenterPage() {
   const [showInactiveAgentsOnly, setShowInactiveAgentsOnly] = useState(false)
   const [showCriticalAnomaliesOnly, setShowCriticalAnomaliesOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Incident creation hook
+  const { createIncident, creating } = useIncidentCreation()
   
   // Fetch the latest snapshot
   const { data: snapshotData, error: snapshotError, mutate: refreshSnapshot } = useSWR(
@@ -126,6 +130,19 @@ export default function ControlCenterPage() {
               <>Loading data...</>
             )}
           </div>
+          <Button 
+            variant="secondary" 
+            onClick={() => createIncident({
+              title: 'Manual Control Center Report',
+              description: 'Incident created from Control Center monitoring',
+              sourceType: 'manual',
+              severity: 'medium',
+              tags: ['control-center', 'manual']
+            })}
+            disabled={creating}
+          >
+            📋 Create Incident
+          </Button>
           <Button variant="secondary" onClick={handleRefresh}>
             Refresh
           </Button>

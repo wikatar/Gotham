@@ -205,12 +205,11 @@ export default function Sidebar() {
           <MenuSeparator collapsed={collapsed} />
 
           {/* Incident Management */}
+          <MenuSeparator />
           <SidebarItem 
-            icon="📑" 
+            icon="📋" 
             label="Incident Reports" 
             href="/incidents"
-            collapsed={collapsed}
-            comingSoon={true}
           />
 
           <MenuSeparator collapsed={collapsed} />
