@@ -41,6 +41,18 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('Error listing ETL tasks:', error)
+    
+    // In development mode, return empty list if database is not available
+    if (process.env.NODE_ENV === 'development' && 
+        (error as any).name === 'PrismaClientInitializationError') {
+      console.log('📝 Database not available, returning empty task list for development')
+      return NextResponse.json({
+        success: true,
+        tasks: [],
+        message: 'Database not available - showing empty list in development mode'
+      })
+    }
+    
     return NextResponse.json({ 
       error: 'Failed to list ETL tasks',
       message: (error as Error).message

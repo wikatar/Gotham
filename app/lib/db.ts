@@ -1,30 +1,11 @@
-import mongoose from 'mongoose'
+import { PrismaClient } from '@prisma/client'
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/gotham_analytics'
+// PrismaClient is attached to the `global` object in development to prevent
+// exhausting your database connection limit.
+// Learn more: https://pris.ly/d/help/next-js-best-practices
 
-let cached = global.mongoose
+const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null }
-}
+export const db = globalForPrisma.prisma || new PrismaClient()
 
-async function connectToDatabase() {
-  if (cached.conn) {
-    return cached.conn
-  }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    }
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose
-    })
-  }
-
-  cached.conn = await cached.promise
-  return cached.conn
-}
-
-export default connectToDatabase 
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db 

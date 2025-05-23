@@ -11,8 +11,8 @@ export class ETLRunner {
   private intervalId: NodeJS.Timeout | null = null;
   private intervalMs: number = 30000; // 30 seconds
 
-  constructor(db?: PrismaClient) {
-    this.db = db || (globalThis as any).prisma || require('@/app/lib/db').db;
+  constructor(dbInstance?: PrismaClient) {
+    this.db = dbInstance || db;
   }
 
   /**
@@ -74,4 +74,4 @@ export class ETLRunner {
 }
 
 // Create a singleton instance
-export const etlRunner = new ETLRunner(); 
+export const etlRunner = new ETLRunner(db); 

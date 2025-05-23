@@ -1,11 +1,17 @@
 import { db } from '@/app/lib/db'
-import { syncService } from './SyncService'
+import { SyncService } from './SyncService'
 import axios from 'axios'
 
 /**
  * Service to handle ETL operations
  */
 export class ETLService {
+  private syncService: SyncService;
+  
+  constructor() {
+    this.syncService = new SyncService(db);
+  }
+  
   /**
    * Run ETL for a specific task
    */
@@ -37,7 +43,7 @@ export class ETLService {
       }
 
       // Run the fetch operation using the SyncService
-      const result = await syncService.executeSync(taskId, 'manual');
+      const result = await this.syncService.executeSync(taskId, 'manual');
 
       // Check if we should run the cleaning pipeline
       if (result.success && task.runPipeline && task.pipelineId) {
