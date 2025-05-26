@@ -308,6 +308,199 @@ async function main() {
     await prisma.activityLog.create({ data: activity });
   }
 
+  // === DATA LINEAGE SEEDING ===
+  
+  // Create sample entities for lineage tracking
+  const salesforceEntity = await prisma.entity.create({
+    data: {
+      type: 'datasource',
+      externalId: 'sf_prod_001',
+      name: 'Salesforce Production',
+      metadata: JSON.stringify({
+        endpoint: 'https://gotham.salesforce.com',
+        version: 'v54.0',
+        lastSync: '2024-01-15T08:00:00Z'
+      }),
+    },
+  });
+
+  const dataWarehouseEntity = await prisma.entity.create({
+    data: {
+      type: 'datasource',
+      externalId: 'dw_analytics_001',
+      name: 'Analytics Data Warehouse',
+      metadata: JSON.stringify({
+        database: 'analytics_prod',
+        schema: 'customer_data',
+        table: 'customer_metrics'
+      }),
+    },
+  });
+
+  const mlPipelineEntity = await prisma.entity.create({
+    data: {
+      type: 'pipeline',
+      externalId: 'ml_churn_pred_v2',
+      name: 'Customer Churn Prediction Pipeline v2',
+      metadata: JSON.stringify({
+        framework: 'scikit-learn',
+        version: '2.1.3',
+        accuracy: 0.847,
+        lastTrained: '2024-01-10T12:00:00Z'
+      }),
+    },
+  });
+
+  // Create sample lineage logs
+  const lineageLogs = [
+    {
+      entityId: salesforceEntity.id,
+      pipelineId: 'etl_salesforce_daily',
+      agentId: 'data_ingestion_agent_v1',
+      input: JSON.stringify({
+        source: 'Salesforce API',
+        endpoint: '/services/data/v54.0/query/',
+        query: 'SELECT Id, Email, CreatedDate, LastLoginDate FROM User WHERE IsActive = true',
+        recordCount: 12547
+      }),
+      output: JSON.stringify({
+        destination: 'data_warehouse.customer_data.users',
+        recordsProcessed: 12547,
+        recordsInserted: 234,
+        recordsUpdated: 12313,
+        executionTime: '45.2s'
+      }),
+      step: 'extraction',
+      source: 'Salesforce',
+      createdAt: new Date('2024-01-15T08:15:00Z'),
+    },
+    {
+      entityId: dataWarehouseEntity.id,
+      pipelineId: 'etl_salesforce_daily',
+      agentId: 'data_transformation_agent',
+      input: JSON.stringify({
+        source: 'data_warehouse.raw.salesforce_users',
+        recordCount: 12547,
+        schema: ['id', 'email', 'created_date', 'last_login_date', 'is_active']
+      }),
+      output: JSON.stringify({
+        destination: 'data_warehouse.customer_data.customer_profiles',
+        transformations: [
+          'email normalization',
+          'date format standardization',
+          'activity score calculation'
+        ],
+        recordsProcessed: 12547,
+        recordsOutput: 12547
+      }),
+      step: 'transformation',
+      source: 'ETL Pipeline',
+      createdAt: new Date('2024-01-15T08:30:00Z'),
+    },
+    {
+      entityId: mlPipelineEntity.id,
+      pipelineId: 'ml_churn_prediction_daily',
+      agentId: 'churn_prediction_agent_v2',
+      input: JSON.stringify({
+        features: [
+          'login_frequency_30d',
+          'feature_usage_score',
+          'support_tickets_count',
+          'payment_history_score',
+          'engagement_trend'
+        ],
+        customerCount: 12547,
+        dataTimeRange: '2023-12-15 to 2024-01-15'
+      }),
+      output: JSON.stringify({
+        predictions: {
+          high_risk: 1247,
+          medium_risk: 2341,
+          low_risk: 8959
+        },
+        modelPerformance: {
+          accuracy: 0.847,
+          precision: 0.823,
+          recall: 0.891,
+          f1Score: 0.856
+        },
+        anomaliesDetected: [
+          {
+            anomalyId: anomaly1.id,
+            type: 'churn_spike_apac',
+            confidence: 0.92
+          }
+        ]
+      }),
+      step: 'prediction',
+      source: 'ML Pipeline',
+      createdAt: new Date('2024-01-15T09:00:00Z'),
+    },
+    {
+      entityId: null, // No specific entity, general system operation
+      pipelineId: 'incident_auto_creation',
+      agentId: 'anomaly_detector_agent',
+      input: JSON.stringify({
+        anomalyId: anomaly1.id,
+        anomalyType: 'churn_rate_increase',
+        severity: 'high',
+        confidence: 0.92,
+        affectedRegion: 'APAC',
+        affectedCustomerSegment: 'premium'
+      }),
+      output: JSON.stringify({
+        incidentId: incident1.id,
+        incidentTitle: 'APAC Premium Customer Churn Spike Detected',
+        status: 'open',
+        assignedTo: ['alice@gotham.se', 'bob@gotham.se'],
+        priority: 'high',
+        automatedActions: [
+          'stakeholder_notification_sent',
+          'escalation_rule_triggered',
+          'investigation_template_created'
+        ]
+      }),
+      step: 'incident_creation',
+      source: 'Anomaly Detection System',
+      createdAt: new Date('2024-01-15T09:05:00Z'),
+    },
+    {
+      entityId: dataWarehouseEntity.id,
+      pipelineId: 'data_quality_check_daily',
+      agentId: 'data_quality_agent_v1',
+      input: JSON.stringify({
+        tables: [
+          'customer_data.customer_profiles',
+          'customer_data.subscription_events',
+          'customer_data.usage_metrics'
+        ],
+        checkTypes: ['completeness', 'accuracy', 'consistency', 'timeliness']
+      }),
+      output: JSON.stringify({
+        qualityScore: 0.956,
+        issues: [
+          {
+            table: 'customer_profiles',
+            issue: 'missing_email_domain',
+            affectedRows: 23,
+            severity: 'low'
+          }
+        ],
+        recommendations: [
+          'Implement email validation at ingestion',
+          'Add data quality alerts for missing domains'
+        ]
+      }),
+      step: 'quality_check',
+      source: 'Data Quality Framework',
+      createdAt: new Date('2024-01-15T10:00:00Z'),
+    },
+  ];
+
+  for (const log of lineageLogs) {
+    await prisma.lineageLog.create({ data: log });
+  }
+
   console.log('✅ Seed completed successfully!');
   console.log(`Created:`);
   console.log(`- ${2} anomalies`);
@@ -316,6 +509,8 @@ async function main() {
   console.log(`- ${5} comment threads`);
   console.log(`- ${8} comments`);
   console.log(`- ${6} activity log entries`);
+  console.log(`- ${3} entities`);
+  console.log(`- ${5} lineage logs`);
 }
 
 main()

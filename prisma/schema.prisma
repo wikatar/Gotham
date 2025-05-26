@@ -121,4 +121,47 @@ model ActivityLog {
   @@index([actor])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// === DATA LINEAGE LAYER ===
+
+// Entity - generell entitet som kan refereras av LineageLog
+model Entity {
+  id          String   @id @default(cuid())
+  type        String   // "mission" | "agent" | "incident" | "anomaly" | "execution" | "pipeline" | "datasource"
+  externalId  String?  // original ID från källsystem
+  name        String?  // namn på entiteten
+  metadata    String?  // JSON som sträng för extra data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  lineageLogs LineageLog[]
+  
+  @@unique([type, externalId])
+  @@index([type])
+  @@map("entities")
+}
+
+// LineageLog - spårar data lineage och transformationer
+model LineageLog {
+  id          String   @id @default(cuid())
+  entityId    String?  // koppling till entitet (om datapunkt är kopplad till något)
+  pipelineId  String?  // pipeline som utförde transformationen
+  agentId     String?  // AI-agent som utförde beslut eller transformation
+  input       String   // vad som togs emot (JSON som sträng för SQLite kompatibilitet)
+  output      String   // vad som skapades / transformerades (JSON som sträng)
+  step        String   // namn på steg, t.ex. "cleaning", "enrichment", "prediction"
+  source      String?  // t.ex. "Salesforce", "File Upload", "Manual"
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  entity      Entity?  @relation(fields: [entityId], references: [id])
+  
+  @@index([entityId])
+  @@index([pipelineId])
+  @@index([agentId])
+  @@index([step])
+  @@index([createdAt])
+  @@map("lineage_logs")
 } 
