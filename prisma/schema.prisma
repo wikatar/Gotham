@@ -209,4 +209,29 @@ model LineageLog {
   @@index([step])
   @@index([createdAt])
   @@map("lineage_logs")
+}
+
+// === LOGIC BUILDER LAYER ===
+
+// LogicRule - No-code regler för automatisering
+model LogicRule {
+  id          String   @id @default(cuid())
+  name        String   // namn på regeln
+  description String?  // beskrivning av vad regeln gör
+  entityType  String?  // typ av entitet regeln gäller för ("mission" | "incident" | "anomaly" | "customer" | "pipeline")
+  entityId    String?  // specifik entitet (om regeln gäller för en specifik entitet)
+  conditions  String   // JSON som sträng - array av villkor [{field: "temperature", operator: ">", value: 75}]
+  actions     String   // JSON som sträng - array av åtgärder [{type: "notify", target: "agent_xyz"}]
+  logicType   String   // "AND" | "OR" - hur villkoren kombineras
+  isActive    Boolean  @default(true) // om regeln är aktiv
+  priority    Int      @default(0) // prioritet för regelexekvering
+  createdBy   String?  // vem som skapade regeln
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([entityType])
+  @@index([entityId])
+  @@index([isActive])
+  @@index([priority])
+  @@map("logic_rules")
 } 

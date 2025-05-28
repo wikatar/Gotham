@@ -179,6 +179,12 @@ export default function Sidebar() {
             collapsed={collapsed}
           />
           <SidebarItem 
+            icon="🔧" 
+            label="Logic Builder" 
+            href="/logic-builder-demo"
+            collapsed={collapsed}
+          />
+          <SidebarItem 
             icon="🔌" 
             label="Data Integrations" 
             href="/data-integrations"

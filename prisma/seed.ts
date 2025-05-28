@@ -605,6 +605,173 @@ async function main() {
     await prisma.decisionExplanation.create({ data: decision });
   }
 
+  // === LOGIC RULES SEEDING ===
+  
+  // Create sample logic rules
+  const logicRules = [
+    {
+      name: 'Hög Kundrisk Alert',
+      description: 'Skapa incident och notifiera agent när kundens riskpoäng överstiger 0.8',
+      entityType: 'customer',
+      conditions: JSON.stringify([
+        { field: 'riskScore', operator: 'greater_than', value: 0.8 }
+      ]),
+      actions: JSON.stringify([
+        { 
+          type: 'create_incident', 
+          parameters: { 
+            title: 'Hög kundrisk detekterad', 
+            severity: 'high',
+            description: 'Automatiskt skapad incident för hög kundrisk'
+          } 
+        },
+        { 
+          type: 'notify_agent', 
+          parameters: { 
+            agentId: 'risk_management_agent',
+            message: 'Kund med hög riskpoäng kräver uppmärksamhet'
+          } 
+        }
+      ]),
+      logicType: 'AND',
+      isActive: true,
+      priority: 80,
+      createdBy: 'system-admin@gotham.se',
+    },
+    {
+      name: 'Pipeline Fel Eskalering',
+      description: 'Eskalera till DevOps när pipeline misslyckas med hög felfrekvens',
+      entityType: 'pipeline',
+      conditions: JSON.stringify([
+        { field: 'status', operator: 'equals', value: 'failed' },
+        { field: 'errorRate', operator: 'greater_than', value: 0.1 }
+      ]),
+      actions: JSON.stringify([
+        { 
+          type: 'escalate', 
+          parameters: { 
+            escalationLevel: 'critical', 
+            assignedTo: 'devops-team@gotham.se',
+            reason: 'Pipeline failure with high error rate'
+          } 
+        },
+        { 
+          type: 'send_email', 
+          parameters: { 
+            recipient: 'alerts@gotham.se', 
+            subject: 'Pipeline Critical Failure Alert',
+            template: 'pipeline_failure_alert'
+          } 
+        }
+      ]),
+      logicType: 'AND',
+      isActive: true,
+      priority: 90,
+      createdBy: 'devops@gotham.se',
+    },
+    {
+      name: 'Mission Auto-Complete',
+      description: 'Automatiskt markera mission som slutförd när slutdatum passerat',
+      entityType: 'mission',
+      conditions: JSON.stringify([
+        { field: 'status', operator: 'equals', value: 'active' },
+        { field: 'endDate', operator: 'less_than', value: new Date().toISOString().split('T')[0] }
+      ]),
+      actions: JSON.stringify([
+        { 
+          type: 'update_field', 
+          parameters: { 
+            field: 'status', 
+            value: 'completed',
+            reason: 'Automatically completed due to end date'
+          } 
+        },
+        { 
+          type: 'log_event', 
+          parameters: { 
+            eventType: 'mission_auto_completed',
+            details: 'Mission automatically marked as completed',
+            severity: 'info'
+          } 
+        }
+      ]),
+      logicType: 'AND',
+      isActive: true,
+      priority: 50,
+      createdBy: 'mission-manager@gotham.se',
+    },
+    {
+      name: 'Kritisk Anomali Respons',
+      description: 'Omedelbar eskalering för kritiska anomalier',
+      entityType: 'anomaly',
+      conditions: JSON.stringify([
+        { field: 'severity', operator: 'equals', value: 'critical' },
+        { field: 'resolved', operator: 'equals', value: false }
+      ]),
+      actions: JSON.stringify([
+        { 
+          type: 'create_incident', 
+          parameters: { 
+            title: 'Kritisk anomali kräver omedelbar uppmärksamhet', 
+            severity: 'critical',
+            assignedTo: 'incident-response-team@gotham.se'
+          } 
+        },
+        { 
+          type: 'escalate', 
+          parameters: { 
+            escalationLevel: 'immediate', 
+            assignedTo: 'on-call-engineer@gotham.se'
+          } 
+        },
+        { 
+          type: 'send_email', 
+          parameters: { 
+            recipient: 'emergency@gotham.se', 
+            subject: 'CRITICAL: Anomaly Requires Immediate Attention'
+          } 
+        }
+      ]),
+      logicType: 'AND',
+      isActive: true,
+      priority: 100,
+      createdBy: 'security-team@gotham.se',
+    },
+    {
+      name: 'Datakvalitet Varning',
+      description: 'Flagga när datakvalitetspoäng sjunker under acceptabel nivå',
+      entityType: 'pipeline',
+      conditions: JSON.stringify([
+        { field: 'dataQualityScore', operator: 'less_than', value: 0.8 }
+      ]),
+      actions: JSON.stringify([
+        { 
+          type: 'flag_entity', 
+          parameters: { 
+            flagType: 'data_quality_warning',
+            reason: 'Data quality score below acceptable threshold',
+            priority: 'medium'
+          } 
+        },
+        { 
+          type: 'notify_agent', 
+          parameters: { 
+            agentId: 'data_quality_agent',
+            message: 'Data quality degradation detected'
+          } 
+        }
+      ]),
+      logicType: 'AND',
+      isActive: true,
+      priority: 60,
+      createdBy: 'data-team@gotham.se',
+    }
+  ];
+
+  for (const rule of logicRules) {
+    await prisma.logicRule.create({ data: rule });
+  }
+
   console.log('✅ Seed completed successfully!');
   console.log(`Created:`);
   console.log(`- ${2} anomalies`);
@@ -616,6 +783,7 @@ async function main() {
   console.log(`- ${3} entities`);
   console.log(`- ${5} lineage logs`);
   console.log(`- ${2} decision explanations`);
+  console.log(`- ${5} logic rules`);
 }
 
 main()
