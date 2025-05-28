@@ -236,6 +236,7 @@ export default function AnomaliesPage() {
           onClose={() => setSelectedAnomaly(null)}
           onUpdate={handleAnomalyUpdate}
         />
+      )}
     </AppLayout>
   )
 } 

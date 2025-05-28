@@ -30,10 +30,6 @@ export function cronMatches(cronExpression: string, date: Date = new Date()): bo
 
 /**
  * Check if a cron expression part matches a value
- * 
- * @param cronPart - Cron expression part (e.g. "0", "1-5", "*/15", "1,3,5")
- * @param value - Value to check against
- * @returns boolean - Whether the cron part matches the value
  */
 function matchesCronPart(cronPart: string, value: number): boolean {
   // Handle wildcards
