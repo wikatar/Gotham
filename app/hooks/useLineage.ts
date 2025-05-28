@@ -22,9 +22,11 @@ interface LineageStep {
 interface UseLineageOptions {
   entityId?: string
   pipelineId?: string
+  agentId?: string
   autoRefresh?: boolean
   refreshInterval?: number
   limit?: number
+  enabled?: boolean
 }
 
 interface UseLineageReturn {
@@ -39,9 +41,11 @@ interface UseLineageReturn {
 export function useLineage({
   entityId,
   pipelineId,
+  agentId,
   autoRefresh = false,
   refreshInterval = 30000, // 30 seconds
-  limit = 50
+  limit = 50,
+  enabled = true
 }: UseLineageOptions = {}): UseLineageReturn {
   const [steps, setSteps] = useState<LineageStep[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,6 +54,8 @@ export function useLineage({
   const [hasMore, setHasMore] = useState(true)
 
   const fetchLineage = useCallback(async (reset = false) => {
+    if (!enabled) return
+    
     try {
       setLoading(true)
       setError(null)
@@ -57,6 +63,7 @@ export function useLineage({
       const params = new URLSearchParams()
       if (entityId) params.append('entityId', entityId)
       if (pipelineId) params.append('pipelineId', pipelineId)
+      if (agentId) params.append('agentId', agentId)
       params.append('limit', limit.toString())
       params.append('offset', reset ? '0' : offset.toString())
 
@@ -82,7 +89,7 @@ export function useLineage({
     } finally {
       setLoading(false)
     }
-  }, [entityId, pipelineId, limit, offset])
+  }, [entityId, pipelineId, agentId, limit, offset, enabled])
 
   const refresh = useCallback(async () => {
     setOffset(0)
@@ -96,8 +103,10 @@ export function useLineage({
 
   // Initial load
   useEffect(() => {
-    fetchLineage(true)
-  }, [entityId, pipelineId, limit])
+    if (enabled) {
+      fetchLineage(true)
+    }
+  }, [entityId, pipelineId, agentId, limit, enabled])
 
   // Auto refresh
   useEffect(() => {

@@ -23,6 +23,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^10.16.4",
     "langchain": "^0.0.200",
+    "lucide-react": "^0.511.0",
     "mongodb": "^6.3.0",
     "mongoose": "^8.0.3",
     "nanoid": "^5.0.0",

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useComments } from './hooks/useComments'
-import { useActivityLog } from './hooks/useActivityLog'
+import { useComments } from '@/app/hooks/useComments'
+import { useActivityLog } from '@/app/hooks/useActivityLog'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 

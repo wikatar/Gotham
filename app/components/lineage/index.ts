@@ -2,9 +2,10 @@
 export { LineageVisualization } from './LineageVisualization'
 export { LineageCompact } from './LineageCompact'
 export { LineageDashboard } from './LineageDashboard'
+export { LineageModal } from './LineageModal'
 
 // Hooks
-export { useLineage, useLineageStats, useLineageRealtime } from '../../hooks/useLineage'
+export { useLineage, useLineageStats, useLineageRealtime } from '@/app/hooks/useLineage'
 
 // Types
 export type {

@@ -16,8 +16,8 @@ export {
 } from './NotificationSystem'
 
 // Hooks
-export { useComments } from './hooks/useComments'
-export { useActivityLog } from './hooks/useActivityLog'
+export { useComments } from '@/app/hooks/useComments'
+export { useActivityLog } from '@/app/hooks/useActivityLog'
 export { useWebSocket } from '../../hooks/useWebSocket'
 
 // Utils

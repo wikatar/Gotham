@@ -4,6 +4,8 @@ import React from 'react';
 import { Agent } from './types';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { LineageModal } from '../lineage/LineageModal';
+import { GitBranch } from 'lucide-react';
 
 interface AgentCardProps {
   agent: Agent;
@@ -166,6 +168,22 @@ export default function AgentCard({
         </div>
         
         <div className="flex justify-end space-x-2 mt-4 border-t border-secondary/20 pt-3">
+          <LineageModal
+            trigger={
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <GitBranch className="h-3 w-3" />
+                Visa kedja
+              </Button>
+            }
+            agentId={agent.id}
+            title={`Data Lineage - ${agent.name}`}
+            description={`Visa transformationssteg för agent ${agent.name}`}
+          />
+          
           {onViewDetails && (
             <Button 
               variant="secondary" 

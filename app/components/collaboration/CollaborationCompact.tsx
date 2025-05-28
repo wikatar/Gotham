@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useComments } from './hooks/useComments'
-import { useActivityLog } from './hooks/useActivityLog'
+import { useComments } from '@/app/hooks/useComments'
+import { useActivityLog } from '@/app/hooks/useActivityLog'
 
 interface CollaborationCompactProps {
   entityType: 'mission' | 'agent' | 'incident' | 'anomaly' | 'execution'

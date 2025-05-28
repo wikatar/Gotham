@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import PipelineExecutionDetail from './PipelineExecutionDetail'
+import PipelineResultCard from '@/app/components/pipelines/PipelineResultCard'
 import Link from 'next/link'
 
 type User = {
@@ -108,75 +109,47 @@ export default function PipelineHistory({
       <h2 className="text-xl font-bold mb-4">⏱ Pipeline Execution History</h2>
       
       {loading ? (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <Card key={i} className="p-3 border">
+            <Card key={i} className="p-6">
               <div className="flex justify-between">
                 <div>
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-3 w-60" />
+                  <Skeleton className="h-6 w-48 mb-2" />
+                  <Skeleton className="h-4 w-64 mb-2" />
+                  <Skeleton className="h-3 w-32" />
                 </div>
-                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-8 w-24" />
               </div>
             </Card>
           ))}
         </div>
       ) : execs.length > 0 ? (
-        <div className="space-y-2">
-          {execs.map((e) => (
-            <Card key={e.id} className="p-3 border">
-              <div className="flex justify-between">
-                <div>
-                  <div className="font-semibold">
-                    {e.pipeline?.name || `Pipeline ID: ${e.pipelineId}`}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Start: {new Date(e.startedAt).toLocaleString()}  
-                    {e.endedAt && <> | End: {new Date(e.endedAt).toLocaleString()}</>}
-                  </div>
-                  {e.user && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      By: {e.user.name || e.user.email || 'Unknown user'}
-                    </div>
-                  )}
-                </div>
-                <div className="text-sm">
-                  <span
-                    className={`px-2 py-1 rounded ${
-                      e.status === 'success'
-                        ? 'bg-green-500 text-white'
-                        : e.status === 'error'
-                        ? 'bg-red-500 text-white'
-                        : 'bg-gray-400 text-white'
-                    }`}
-                  >
-                    {e.status}
-                  </span>
-                </div>
-              </div>
-              {e.error && <div className="text-red-600 mt-2 text-sm">Error: {e.error}</div>}
-              
-              <div className="mt-2 flex justify-end space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setSelectedExecution(e.id)}
-                  className="text-sm"
-                >
-                  View Details
-                </Button>
-                <Link href={`/pipeline-executions/${e.id}`} passHref>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-sm"
-                  >
-                    Open in New Page
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          ))}
+        <div className="space-y-4">
+          {execs.map((e) => {
+            // Transform the execution data to match PipelineResultCard interface
+            const execution = {
+              id: e.id,
+              pipelineId: e.pipelineId,
+              pipelineName: e.pipeline?.name,
+              status: e.status as 'success' | 'error' | 'running' | 'pending',
+              startedAt: new Date(e.startedAt),
+              endedAt: e.endedAt ? new Date(e.endedAt) : undefined,
+              error: e.error,
+              user: e.user
+            }
+
+            return (
+              <PipelineResultCard
+                key={e.id}
+                execution={execution}
+                onViewDetails={(id) => setSelectedExecution(id)}
+                onRunAgain={(pipelineId, input) => {
+                  console.log('Run again:', pipelineId, input)
+                  // TODO: Implement run again functionality
+                }}
+              />
+            )
+          })}
         </div>
       ) : (
         <div className="text-center p-8 border rounded-lg">
