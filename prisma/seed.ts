@@ -501,6 +501,110 @@ async function main() {
     await prisma.lineageLog.create({ data: log });
   }
 
+  // === DECISION EXPLANATIONS SEEDING ===
+  
+  // Get the lineage logs we just created for referencing
+  const createdLineageLogs = await prisma.lineageLog.findMany({
+    orderBy: { createdAt: 'asc' }
+  });
+
+  // Create sample decision explanations
+  const decisionExplanations = [
+    {
+      title: 'APAC Churn Risk Prediction',
+      description: 'AI-modell identifierade hög churn-risk för premium-kunder i APAC-regionen baserat på användarmönster och engagemang.',
+      decisionType: 'prediction',
+      outcome: 'High churn risk detected for 1,247 premium customers in APAC',
+      confidence: 0.92,
+      agentId: 'churn_prediction_agent_v2',
+      missionId: mission1.id,
+      lineageId: createdLineageLogs[2]?.id, // ML prediction lineage
+      entityType: 'anomaly',
+      entityId: anomaly1.id,
+      inputData: JSON.stringify({
+        customerSegment: 'premium',
+        region: 'APAC',
+        features: {
+          loginFrequency30d: 2.3,
+          featureUsageScore: 0.34,
+          supportTicketsCount: 8,
+          paymentHistoryScore: 0.89,
+          engagementTrend: -0.45
+        },
+        historicalData: '90 days',
+        modelVersion: 'v2.1.3'
+      }),
+      reasoning: 'Modellen identifierade en signifikant minskning i engagemang (-45%) kombinerat med ökad supportaktivitet (8 tickets vs genomsnitt 2.1) och låg feature-användning (0.34 vs genomsnitt 0.78). Historiska mönster visar att denna kombination leder till churn inom 30 dagar med 92% sannolikhet.',
+      alternatives: JSON.stringify([
+        {
+          decision: 'Medium risk classification',
+          confidence: 0.67,
+          reasoning: 'Baserat endast på engagemang-trend utan support-data'
+        },
+        {
+          decision: 'Low risk classification', 
+          confidence: 0.23,
+          reasoning: 'Om endast payment history beaktas'
+        }
+      ]),
+      impactLevel: 'high',
+      status: 'approved',
+      reviewedBy: 'alice@gotham.se',
+      reviewedAt: new Date('2024-01-15T09:30:00Z'),
+      createdAt: new Date('2024-01-15T09:00:00Z'),
+    },
+    {
+      title: 'Automatisk Incident-skapande',
+      description: 'System beslutade att automatiskt skapa incident baserat på anomali-detektion och fördefinierade regler.',
+      decisionType: 'anomaly_detection',
+      outcome: 'Incident created automatically for APAC churn anomaly',
+      confidence: 0.95,
+      agentId: 'anomaly_detector_agent',
+      missionId: mission1.id,
+      lineageId: createdLineageLogs[3]?.id, // Incident creation lineage
+      entityType: 'incident',
+      entityId: incident1.id,
+      inputData: JSON.stringify({
+        anomalyId: anomaly1.id,
+        anomalyType: 'churn_rate_increase',
+        severity: 'high',
+        confidence: 0.92,
+        thresholds: {
+          churnRateIncrease: 0.35,
+          minimumConfidence: 0.85,
+          affectedCustomers: 1000
+        },
+        businessRules: [
+          'auto_create_incident_for_high_severity',
+          'notify_stakeholders_for_churn_anomalies',
+          'assign_to_retention_team'
+        ]
+      }),
+      reasoning: 'Anomalin överskrider alla kritiska tröskelvärden: churn-ökning på 35% (tröskelvärde 20%), påverkar 1,247 kunder (tröskelvärde 1,000), och har hög konfidensgrad (92% vs minimum 85%). Automatiska regler kräver incident-skapande för denna typ av anomali.',
+      alternatives: JSON.stringify([
+        {
+          decision: 'Send alert only',
+          confidence: 0.45,
+          reasoning: 'Mindre drastisk åtgärd, men kan missa kritisk situation'
+        },
+        {
+          decision: 'Wait for manual review',
+          confidence: 0.12,
+          reasoning: 'Risk för försenad respons på kritisk situation'
+        }
+      ]),
+      impactLevel: 'critical',
+      status: 'implemented',
+      reviewedBy: 'system',
+      reviewedAt: new Date('2024-01-15T09:05:00Z'),
+      createdAt: new Date('2024-01-15T09:05:00Z'),
+    }
+  ];
+
+  for (const decision of decisionExplanations) {
+    await prisma.decisionExplanation.create({ data: decision });
+  }
+
   console.log('✅ Seed completed successfully!');
   console.log(`Created:`);
   console.log(`- ${2} anomalies`);
@@ -511,6 +615,7 @@ async function main() {
   console.log(`- ${6} activity log entries`);
   console.log(`- ${3} entities`);
   console.log(`- ${5} lineage logs`);
+  console.log(`- ${2} decision explanations`);
 }
 
 main()

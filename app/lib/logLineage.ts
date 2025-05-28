@@ -4,6 +4,7 @@ export interface LogLineageStepParams {
   entityId?: string;
   pipelineId?: string;
   agentId?: string;
+  missionId?: string;
   input: any;
   output: any;
   step: string;
@@ -15,6 +16,7 @@ export interface LineageLogResult {
   entityId: string | null;
   pipelineId: string | null;
   agentId: string | null;
+  missionId: string | null;
   input: string;
   output: string;
   step: string;
@@ -44,6 +46,7 @@ export async function logLineageStep({
   entityId,
   pipelineId,
   agentId,
+  missionId,
   input,
   output,
   step,
@@ -59,6 +62,7 @@ export async function logLineageStep({
         entityId,
         pipelineId,
         agentId,
+        missionId,
         input: inputJson,
         output: outputJson,
         step,
@@ -66,12 +70,12 @@ export async function logLineageStep({
       },
     });
 
-    console.log(`📊 Lineage logged: ${step} (${source}) - Pipeline: ${pipelineId || 'N/A'}, Agent: ${agentId || 'N/A'}`);
+    console.log(`📊 Lineage logged: ${step} (${source}) - Pipeline: ${pipelineId || 'N/A'}, Agent: ${agentId || 'N/A'}, Mission: ${missionId || 'N/A'}`);
     
     return lineageLog;
   } catch (error) {
     console.error('❌ Failed to log lineage step:', error);
-    console.error('Step details:', { entityId, pipelineId, agentId, step, source });
+    console.error('Step details:', { entityId, pipelineId, agentId, missionId, step, source });
     
     // Re-throw the error so calling code can handle it appropriately
     throw new Error(`Failed to log lineage step "${step}": ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -108,6 +112,7 @@ export class LineageContext {
   private pipelineId: string;
   private entityId?: string;
   private agentId?: string;
+  private missionId?: string;
   private source: string;
   private stepCounter: number = 0;
 
@@ -115,16 +120,19 @@ export class LineageContext {
     pipelineId,
     entityId,
     agentId,
+    missionId,
     source = "internal"
   }: {
     pipelineId: string;
     entityId?: string;
     agentId?: string;
+    missionId?: string;
     source?: string;
   }) {
     this.pipelineId = pipelineId;
     this.entityId = entityId;
     this.agentId = agentId;
+    this.missionId = missionId;
     this.source = source;
   }
 
@@ -137,6 +145,7 @@ export class LineageContext {
     step,
     entityId,
     agentId,
+    missionId,
     source
   }: {
     input: any;
@@ -144,6 +153,7 @@ export class LineageContext {
     step: string;
     entityId?: string;
     agentId?: string;
+    missionId?: string;
     source?: string;
   }): Promise<LineageLogResult> {
     this.stepCounter++;
@@ -152,6 +162,7 @@ export class LineageContext {
       entityId: entityId || this.entityId,
       pipelineId: this.pipelineId,
       agentId: agentId || this.agentId,
+      missionId: missionId || this.missionId,
       input,
       output,
       step: `${this.stepCounter}_${step}`,
@@ -209,5 +220,115 @@ export async function getLineageForPipeline(pipelineId: string): Promise<Lineage
   } catch (error) {
     console.error('❌ Failed to get lineage for pipeline:', error);
     return [];
+  }
+}
+
+/**
+ * Helper to get lineage for a specific mission
+ */
+export async function getLineageForMission(missionId: string): Promise<LineageLogResult[]> {
+  try {
+    return await db.lineageLog.findMany({
+      where: { missionId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        entity: true,
+        mission: true
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to get lineage for mission:', error);
+    return [];
+  }
+}
+
+/**
+ * Log a decision with automatic lineage tracking
+ * This creates both a lineage log and a decision explanation
+ */
+export async function logDecisionWithLineage({
+  title,
+  description,
+  decisionType,
+  outcome,
+  confidence,
+  agentId,
+  missionId,
+  entityType,
+  entityId,
+  inputData,
+  reasoning,
+  alternatives,
+  impactLevel = 'medium',
+  status = 'pending',
+  pipelineId,
+  step,
+  source = 'AI Decision'
+}: {
+  title: string;
+  description?: string;
+  decisionType: string;
+  outcome: string;
+  confidence: number;
+  agentId?: string;
+  missionId?: string;
+  entityType?: string;
+  entityId?: string;
+  inputData: any;
+  reasoning?: string;
+  alternatives?: any;
+  impactLevel?: string;
+  status?: string;
+  pipelineId?: string;
+  step: string;
+  source?: string;
+}) {
+  try {
+    // First, log the lineage step
+    const lineageLog = await logLineageStep({
+      entityId,
+      pipelineId,
+      agentId,
+      missionId,
+      input: inputData,
+      output: { decision: outcome, confidence, reasoning },
+      step,
+      source
+    });
+
+    // Then, create the decision explanation linked to the lineage
+    const decision = await db.decisionExplanation.create({
+      data: {
+        title,
+        description,
+        decisionType,
+        outcome,
+        confidence,
+        agentId,
+        missionId,
+        lineageId: lineageLog.id,
+        entityType,
+        entityId,
+        inputData: typeof inputData === 'string' ? inputData : JSON.stringify(inputData),
+        reasoning,
+        alternatives: typeof alternatives === 'string' ? alternatives : JSON.stringify(alternatives),
+        impactLevel,
+        status,
+      },
+      include: {
+        mission: true,
+        lineage: true,
+      },
+    });
+
+    console.log(`🧠 Decision logged with lineage: ${title} (${decisionType}) - Confidence: ${(confidence * 100).toFixed(1)}%`);
+    
+    return {
+      decision,
+      lineage: lineageLog
+    };
+  } catch (error) {
+    console.error('❌ Failed to log decision with lineage:', error);
+    throw new Error(`Failed to log decision "${title}": ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 } 

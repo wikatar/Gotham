@@ -22,6 +22,8 @@ model Mission {
 
   // Relations
   incidentReports IncidentReport[]
+  lineageLogs     LineageLog[]
+  decisionExplanations DecisionExplanation[]
 
   @@map("missions")
 }
@@ -52,6 +54,7 @@ model IncidentReport {
   sourceType     String   // agent | anomaly | manual
   sourceId       String?  // referens till agent eller anomaly
   missionId      String?  // koppla till uppdrag
+  lineageId      String?  // koppling till LineageLog för spårbarhet
   status         String   // open | investigating | resolved
   severity       String   // low | medium | high | critical
   tags           String   // Comma-separated tags for SQLite compatibility
@@ -63,8 +66,45 @@ model IncidentReport {
   // Relations
   mission Mission? @relation(fields: [missionId], references: [id])
   anomaly Anomaly? @relation(fields: [sourceId], references: [id])
+  lineage LineageLog? @relation(fields: [lineageId], references: [id])
 
   @@map("incident_reports")
+}
+
+// DecisionExplanation - spårar AI-beslut och deras förklaringar
+model DecisionExplanation {
+  id             String   @id @default(cuid())
+  title          String   // kort beskrivning av beslutet
+  description    String?  // detaljerad beskrivning
+  decisionType   String   // "prediction" | "classification" | "anomaly_detection" | "recommendation"
+  outcome        String   // resultatet av beslutet
+  confidence     Float    // säkerhet i beslutet (0.0 - 1.0)
+  agentId        String?  // AI-agent som fattade beslutet
+  missionId      String?  // koppling till mission
+  lineageId      String?  // koppling till LineageLog för spårbarhet
+  entityType     String?  // typ av entitet som påverkades
+  entityId       String?  // ID för entitet som påverkades
+  inputData      String   // input data som användes (JSON som sträng)
+  reasoning      String?  // förklaring av beslutsprocessen
+  alternatives   String?  // alternativa beslut som övervägdes (JSON som sträng)
+  impactLevel    String   // "low" | "medium" | "high" | "critical"
+  status         String   // "pending" | "approved" | "rejected" | "implemented"
+  reviewedBy     String?  // vem som granskade beslutet
+  reviewedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  mission Mission? @relation(fields: [missionId], references: [id])
+  lineage LineageLog? @relation(fields: [lineageId], references: [id])
+
+  @@index([agentId])
+  @@index([missionId])
+  @@index([lineageId])
+  @@index([decisionType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("decision_explanations")
 }
 
 // === COLLABORATION LAYER ===
@@ -149,6 +189,7 @@ model LineageLog {
   entityId    String?  // koppling till entitet (om datapunkt är kopplad till något)
   pipelineId  String?  // pipeline som utförde transformationen
   agentId     String?  // AI-agent som utförde beslut eller transformation
+  missionId   String?  // koppling till mission för spårning per uppdrag
   input       String   // vad som togs emot (JSON som sträng för SQLite kompatibilitet)
   output      String   // vad som skapades / transformerades (JSON som sträng)
   step        String   // namn på steg, t.ex. "cleaning", "enrichment", "prediction"
@@ -157,10 +198,14 @@ model LineageLog {
   
   // Relations
   entity      Entity?  @relation(fields: [entityId], references: [id])
+  mission     Mission? @relation(fields: [missionId], references: [id])
+  incidentReports IncidentReport[] // reverse relation
+  decisionExplanations DecisionExplanation[] // reverse relation
   
   @@index([entityId])
   @@index([pipelineId])
   @@index([agentId])
+  @@index([missionId])
   @@index([step])
   @@index([createdAt])
   @@map("lineage_logs")

@@ -12,6 +12,7 @@ import ActionItem from '../../components/missions/ActionItem';
 import AiRecommendationTab from '../../components/missions/AiRecommendationTab';
 import AssignedAgentsTab from '../../components/missions/AssignedAgentsTab';
 import { CollaborationPanel } from '../../components/collaboration';
+import DecisionExplanationViewer from '../../components/explainability/DecisionExplanationViewer';
 import { SAMPLE_ENHANCED_MISSIONS } from '../../components/missions/sampleData';
 import { EnhancedMission, MissionAction } from '../../components/missions/types';
 import Link from 'next/link';
@@ -26,7 +27,7 @@ function formatDate(date: Date) {
 export default function MissionDetailPage() {
   const params = useParams();
   const [mission, setMission] = useState<EnhancedMission | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'kpis' | 'actions' | 'recommendations' | 'agents' | 'collaboration'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'kpis' | 'actions' | 'recommendations' | 'explainability' | 'agents' | 'collaboration'>('overview');
   const [isLoading, setIsLoading] = useState(true);
   
   // Current user (in a real app, this would come from auth context)
@@ -196,6 +197,16 @@ export default function MissionDetailPage() {
           onClick={() => setActiveTab('recommendations')}
         >
           AI Recommendations
+        </button>
+        <button
+          className={`px-4 py-2 font-medium text-sm ${
+            activeTab === 'explainability' 
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('explainability')}
+        >
+          Explainability
         </button>
         <button
           className={`px-4 py-2 font-medium text-sm ${
@@ -460,6 +471,23 @@ export default function MissionDetailPage() {
       {/* AI Recommendations Tab */}
       {activeTab === 'recommendations' && (
         <AiRecommendationTab missionId={mission.id} />
+      )}
+
+      {/* Explainability Tab */}
+      {activeTab === 'explainability' && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold">Explainability</h2>
+            <p className="text-text-secondary mt-1">
+              Förklara AI-beslut och visa spårbara kedjor för alla transformationer kopplade till denna mission.
+            </p>
+          </div>
+          
+          <DecisionExplanationViewer 
+            missionId={mission.id}
+            limit={20}
+          />
+        </div>
       )}
 
       {/* Agents Tab */}
