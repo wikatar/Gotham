@@ -1,10 +1,40 @@
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from '@/components/ui/use-toast'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
+import Card from '../../app/components/ui/Card'
+import Button from '../../app/components/ui/Button'
+
+// Simple skeleton component
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
+)
+
+// Simple toast function
+const toast = ({ title, description, variant }: { 
+  title: string; 
+  description: string; 
+  variant?: string;
+}) => {
+  console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`)
+  // In a real app, this would show a proper toast notification
+}
+
+// Simple Tab components
+const TabButton = ({ id, label, active, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {label}
+  </button>
+)
 
 interface PipelineExecutionDetailProps {
   executionId: string;
@@ -136,7 +166,7 @@ export default function PipelineExecutionDetail({
       <div className="p-4 bg-red-50 text-red-600 rounded-md">
         <p>Error loading execution details: {error}</p>
         {onBack && (
-          <Button onClick={onBack} variant="outline" className="mt-4">
+          <Button onClick={onBack} variant="secondary" className="mt-4">
             Go Back
           </Button>
         )}
@@ -148,7 +178,7 @@ export default function PipelineExecutionDetail({
     return (
       <div className="p-6 space-y-4">
         <Skeleton className="h-8 w-60 mb-4" />
-        <Card className="p-4">
+        <Card title="Loading...">
           <Skeleton className="h-4 w-40 mb-2" />
           <Skeleton className="h-4 w-full mb-2" />
           <Skeleton className="h-4 w-40 mb-2" />
@@ -164,113 +194,111 @@ export default function PipelineExecutionDetail({
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">🔎 Execution Details</h1>
         {onBack && (
-          <Button onClick={onBack} variant="outline">
+          <Button onClick={onBack} variant="secondary">
             Back to History
           </Button>
         )}
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="replay">Replay</TabsTrigger>
-        </TabsList>
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 border-b border-gray-200 mb-4">
+        <TabButton 
+          id="details" 
+          label="Details" 
+          active={activeTab === 'details'} 
+          onClick={() => setActiveTab('details')}
+        />
+        <TabButton 
+          id="replay" 
+          label="Replay" 
+          active={activeTab === 'replay'} 
+          onClick={() => setActiveTab('replay')}
+        />
+      </div>
         
-        <TabsContent value="details">
-          <Card className="p-4">
-            <div className="font-semibold">Pipeline ID:</div>
-            <div>{execution.pipelineId}</div>
+      {activeTab === 'details' && (
+        <Card title="Execution Information">
+          <div className="font-semibold">Pipeline ID:</div>
+          <div>{execution.pipelineId}</div>
 
-            <div className="mt-2 font-semibold">Status:</div>
-            <div className={`capitalize ${
-              execution.status === 'success' ? 'text-green-600' : 
-              execution.status === 'error' ? 'text-red-600' : 
-              'text-amber-600'
-            }`}>
-              {execution.status}
-            </div>
+          <div className="mt-2 font-semibold">Status:</div>
+          <div className={`capitalize ${
+            execution.status === 'success' ? 'text-green-600' : 
+            execution.status === 'error' ? 'text-red-600' : 
+            'text-amber-600'
+          }`}>
+            {execution.status}
+          </div>
 
-            <div className="mt-2 font-semibold">Timestamp:</div>
-            <div>
-              Started: {new Date(execution.startedAt).toLocaleString()}
-              {execution.endedAt && <> | Ended: {new Date(execution.endedAt).toLocaleString()}</>}
-            </div>
+          <div className="mt-2 font-semibold">Timestamp:</div>
+          <div>
+            Started: {new Date(execution.startedAt).toLocaleString()}
+            {execution.endedAt && <> | Ended: {new Date(execution.endedAt).toLocaleString()}</>}
+          </div>
 
-            {execution.error && (
-              <>
-                <div className="mt-4 font-semibold text-red-600">Error:</div>
-                <pre className="bg-red-50 p-3 rounded text-sm text-red-800 whitespace-pre-wrap overflow-auto max-h-40">
-                  {execution.error}
-                </pre>
-              </>
-            )}
-
-            <div className="mt-4 font-semibold">Input:</div>
-            <pre className="bg-gray-50 p-3 rounded text-sm whitespace-pre-wrap overflow-auto max-h-60 border">
-              {JSON.stringify(execution.input, null, 2)}
-            </pre>
-
-            {execution.output && (
-              <>
-                <div className="mt-4 font-semibold">Output:</div>
-                <pre className="bg-gray-50 p-3 rounded text-sm whitespace-pre-wrap overflow-auto max-h-60 border">
-                  {JSON.stringify(execution.output, null, 2)}
-                </pre>
-              </>
-            )}
-            
-            <div className="mt-4">
-              <Button
-                onClick={handleRunAgain}
-                disabled={runningAgain}
-              >
-                {runningAgain ? 'Running...' : 'Run Again with Same Input'}
-              </Button>
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="replay">
-          <Card className="p-4">
-            <div className="mb-4">
-              <h3 className="font-semibold text-lg">🧪 Modify Input and Replay</h3>
-              <p className="text-sm text-gray-600">
-                Edit the JSON input below and replay the pipeline to test with different parameters.
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="font-medium">Pipeline ID: {execution.pipelineId}</div>
-              
-              <div className="mt-4">
-                <label htmlFor="input-json" className="font-medium block mb-1">
-                  Input JSON:
-                </label>
-                <Textarea
-                  id="input-json"
-                  className="font-mono text-sm h-72 w-full"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                />
-                
-                {inputError && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {inputError}
-                  </div>
-                )}
+          {execution.error && (
+            <>
+              <div className="mt-2 font-semibold">Error:</div>
+              <div className="text-red-600 bg-red-50 p-2 rounded">
+                {execution.error}
               </div>
-              
-              <Button
-                onClick={handleReplayWithModifiedInput}
-                disabled={runningAgain}
-                className="mt-4"
-              >
-                {runningAgain ? 'Running...' : 'Run With Modified Input'}
-              </Button>
+            </>
+          )}
+
+          <div className="mt-4 font-semibold">Input Data:</div>
+          <pre className="bg-gray-50 p-3 rounded text-sm overflow-auto">
+            {JSON.stringify(execution.input, null, 2)}
+          </pre>
+
+          {execution.output && (
+            <>
+              <div className="mt-4 font-semibold">Output Data:</div>
+              <pre className="bg-gray-50 p-3 rounded text-sm overflow-auto">
+                {JSON.stringify(execution.output, null, 2)}
+              </pre>
+            </>
+          )}
+
+          <div className="mt-4 flex gap-2">
+            <Button 
+              onClick={handleRunAgain}
+              disabled={runningAgain}
+            >
+              {runningAgain ? 'Running...' : 'Run Again'}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === 'replay' && (
+        <Card title="Replay with Modified Input">
+          <p className="text-gray-600 mb-4">
+            Modify the input data below and replay the pipeline execution.
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Input Data (JSON):</label>
+              <textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                rows={10}
+                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              />
+              {inputError && (
+                <p className="text-red-600 text-sm mt-1">{inputError}</p>
+              )}
             </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            
+            <Button 
+              onClick={handleReplayWithModifiedInput}
+              disabled={runningAgain}
+            >
+              {runningAgain ? 'Running...' : 'Replay with Modified Input'}
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   )
 } 

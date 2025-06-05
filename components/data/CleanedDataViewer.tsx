@@ -1,169 +1,274 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { toast } from '@/components/ui/use-toast'
-import Link from 'next/link'
-import { GlobeIcon, LightbulbIcon } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import Button from '../../app/components/ui/Button'
+import Card from '../../app/components/ui/Card'
+import { Download, Search, Filter, RefreshCw } from 'lucide-react'
 
-export default function CleanedDataViewer({
-  sourceId,
-  pipelineId,
-}: {
+// Simple toast function
+const toast = ({ title, description, variant }: { 
+  title: string; 
+  description: string; 
+  variant?: string;
+}) => {
+  console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`)
+  // In a real app, this would show a proper toast notification
+}
+
+interface CleanedDataViewerProps {
   sourceId: string
-  pipelineId: string
-}) {
-  const [rows, setRows] = useState<any[]>([])
+  pipelineId?: string
+}
+
+export default function CleanedDataViewer({ sourceId, pipelineId }: CleanedDataViewerProps) {
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
   const [columns, setColumns] = useState<string[]>([])
-  const [filter, setFilter] = useState('')
-  const [loading, setLoading] = useState(true)
+  const pageSize = 50
+
+  const fetchData = async (page = 1, search = '') => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const requestBody: any = {
+        sourceId,
+        page,
+        limit: pageSize
+      }
+      
+      if (pipelineId) requestBody.pipelineId = pipelineId
+      if (search) requestBody.search = search
+      
+      const response = await fetch('/api/data/cleaned/view', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+      
+      const result = await response.json()
+      
+      if (result.error) {
+        setError(result.message || 'Error loading cleaned data')
+        setData([])
+        setColumns([])
+      } else {
+        setData(result.data || [])
+        setColumns(result.columns || [])
+        setTotalRecords(result.total || 0)
+        setTotalPages(Math.ceil((result.total || 0) / pageSize))
+        setCurrentPage(page)
+      }
+    } catch (err) {
+      console.error('Error fetching cleaned data:', err)
+      setError('Failed to load cleaned data')
+      setData([])
+      setColumns([])
+    }
+    
+    setLoading(false)
+  }
 
   useEffect(() => {
-    setLoading(true)
-    fetch(`/api/data/cleaned/list`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceId, pipelineId }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setRows(data.rows)
-        if (data.rows.length > 0) {
-          setColumns(Object.keys(data.rows[0].row))
-        }
-        setLoading(false)
-      })
-      .catch(error => {
-        console.error('Error fetching cleaned data:', error)
-        toast({
-          title: 'Error fetching data',
-          description: 'Could not load cleaned data rows',
-          variant: 'destructive',
-        })
-        setLoading(false)
-      })
+    fetchData(1, searchTerm)
   }, [sourceId, pipelineId])
 
-  const filteredRows = rows.filter((r) =>
-    JSON.stringify(r.row).toLowerCase().includes(filter.toLowerCase())
-  )
+  const handleSearch = () => {
+    setCurrentPage(1)
+    fetchData(1, searchTerm)
+  }
 
-  const exportCSV = () => {
-    if (columns.length === 0 || filteredRows.length === 0) {
-      toast({
-        title: 'Cannot export',
-        description: 'No data available to export',
-        variant: 'destructive',
-      })
-      return
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchData(newPage, searchTerm)
     }
+  }
 
+  const downloadData = async () => {
     try {
-      const csv = [
-        columns.join(','),
-        ...filteredRows.map((r) =>
-          columns.map((c) => `"${(r.row[c] ?? '').toString().replace(/"/g, '""')}"`).join(',')
-        ),
-      ].join('\n')
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `cleaned-${pipelineId}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      const requestBody: any = { sourceId }
+      if (pipelineId) requestBody.pipelineId = pipelineId
+      if (searchTerm) requestBody.search = searchTerm
       
-      toast({
-        title: 'Export successful',
-        description: `Exported ${filteredRows.length} rows to CSV`,
+      const response = await fetch('/api/data/cleaned/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       })
-    } catch (error) {
-      console.error('Error exporting CSV:', error)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `cleaned-data-${sourceId}-${Date.now()}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        
+        toast({
+          title: 'Success',
+          description: 'Data exported successfully'
+        })
+      } else {
+        throw new Error('Export failed')
+      }
+    } catch (err) {
+      console.error('Error exporting data:', err)
       toast({
-        title: 'Export failed',
-        description: (error as Error).message,
-        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to export data',
+        variant: 'destructive'
       })
     }
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Cleaned Data</h1>
-        
-        <div className="flex gap-2">
-          <Link href={`/data-analytics/${sourceId}/${pipelineId}`}>
-            <Button variant="default" className="flex items-center gap-2">
-              <GlobeIcon className="h-4 w-4" />
-              Analyze Data
+    <Card title="Cleaned Data Viewer">
+      <div className="space-y-4">
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex gap-2 flex-1 max-w-md">
+            <input
+              type="text"
+              placeholder="Search data..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <Button
+              variant="secondary"
+              onClick={handleSearch}
+              disabled={loading}
+            >
+              <Search className="h-4 w-4" />
             </Button>
-          </Link>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => fetchData(currentPage, searchTerm)}
+              disabled={loading}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              onClick={downloadData}
+              disabled={loading || data.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div className="flex gap-2 items-center">
-        <Input
-          className="w-full"
-          placeholder="🔍 Filter rows..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          disabled={loading || rows.length === 0}
-        />
-        <Button 
-          variant="secondary" 
-          onClick={exportCSV}
-          disabled={loading || rows.length === 0}
-        >
-          Export CSV
-        </Button>
-      </div>
+        {/* Stats */}
+        {totalRecords > 0 && (
+          <div className="text-sm text-gray-600">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalRecords)} of {totalRecords.toLocaleString()} records
+          </div>
+        )}
 
-      {loading ? (
-        <div className="text-center py-8">Loading data...</div>
-      ) : rows.length === 0 ? (
-        <Card className="p-6 text-center">
-          <p className="text-muted-foreground">
-            No cleaned data available for this pipeline.
-          </p>
-        </Card>
-      ) : (
-        <>
-          <Card className="overflow-auto max-h-[600px]">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th key={c} className="text-left p-2 border-b bg-muted/20 sticky top-0">
-                      {c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.slice(0, 100).map((row, i) => (
-                  <tr key={i} className="hover:bg-muted/20">
-                    {columns.map((c) => (
-                      <td key={c} className="p-2 border-b border-muted truncate max-w-[200px]">
-                        {typeof row.row[c] === 'string' ? row.row[c] : JSON.stringify(row.row[c])}
-                      </td>
+        {/* Data Table */}
+        {error ? (
+          <div className="text-center py-12">
+            <p className="text-lg font-medium mb-2">Could not load data</p>
+            <p className="text-sm text-gray-600 mb-4">{error}</p>
+            <Button variant="primary" onClick={() => fetchData(currentPage, searchTerm)}>
+              Try Again
+            </Button>
+          </div>
+        ) : loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading cleaned data...</p>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No data available</p>
+            {searchTerm && (
+              <p className="text-sm text-gray-500 mt-2">
+                Try adjusting your search criteria
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {columns.map((column, index) => (
+                      <th
+                        key={index}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {column}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-          
-          <div className="text-sm text-muted-foreground">
-            Showing {Math.min(filteredRows.length, 100)} of {filteredRows.length} rows
-            {filteredRows.length !== rows.length && ` (filtered from ${rows.length} total)`}
-          </div>
-        </>
-      )}
-    </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {data.map((row, rowIndex) => (
+                    <tr key={rowIndex} className="hover:bg-gray-50">
+                      {columns.map((column, colIndex) => (
+                        <td
+                          key={colIndex}
+                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                        >
+                          {row[column] !== null && row[column] !== undefined 
+                            ? String(row[column]) 
+                            : '-'
+                          }
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1 || loading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages || loading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Card>
   )
 } 

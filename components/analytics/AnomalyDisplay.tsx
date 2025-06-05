@@ -1,13 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
-import { Button } from '../ui/button'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
+import Card from '../../app/components/ui/Card'
+import Button from '../../app/components/ui/Button'
+import Badge from '../../app/components/ui/Badge'
 import { Loader2, AlertCircle, ArrowUpDown, Scan, Zap } from 'lucide-react'
-import { Badge } from '../ui/badge'
 import InsightActionPanel from './InsightActionPanel'
+
+// Simple Tab components
+const TabButton = ({ id, label, active, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {label}
+  </button>
+)
 
 interface AnomalyDisplayProps {
   sourceId?: string
@@ -22,6 +39,7 @@ export default function AnomalyDisplay({ sourceId, pipelineId }: AnomalyDisplayP
   const [availableFields, setAvailableFields] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [selectedAnomaly, setSelectedAnomaly] = useState<any | null>(null)
+  const [activeTab, setActiveTab] = useState('detection')
 
   const fetchAnomalies = async () => {
     if (!sourceId && !pipelineId) {
@@ -118,188 +136,183 @@ export default function AnomalyDisplay({ sourceId, pipelineId }: AnomalyDisplayP
   }
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold flex items-center">
-          <AlertCircle className="h-5 w-5 mr-2 text-yellow-500" />
-          Anomaly Detection
-        </CardTitle>
-        <CardDescription>
-          Identify unusual patterns and outliers in your data
-        </CardDescription>
-      </CardHeader>
+    <Card title="Anomaly Detection">
+      <p className="text-gray-600 mb-4">
+        Identify unusual patterns and outliers in your data
+      </p>
       
-      <CardContent>
-        {!selectedAnomaly ? (
-          <>
-            <div className="flex gap-2 mb-4">
-              <div className="w-1/2">
-                <Select value={method} onValueChange={setMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Detection method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Automatic</SelectItem>
-                    <SelectItem value="iqr">Interquartile Range (IQR)</SelectItem>
-                    <SelectItem value="zscore">Z-Score</SelectItem>
-                    <SelectItem value="percent">Percentile</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="w-1/2">
-                <Select 
-                  value={selectedField || ''} 
-                  onValueChange={setSelectedField}
-                  disabled={availableFields.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All fields" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All fields</SelectItem>
-                    {availableFields.map(field => (
-                      <SelectItem key={field} value={field}>{field}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      {!selectedAnomaly ? (
+        <>
+          <div className="flex gap-2 mb-4">
+            <div className="w-1/2">
+              <label className="block text-sm font-medium mb-2">Detection Method</label>
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="auto">Automatic</option>
+                <option value="iqr">Interquartile Range (IQR)</option>
+                <option value="zscore">Z-Score</option>
+                <option value="percent">Percentile</option>
+              </select>
             </div>
             
-            <Button 
-              className="w-full mb-4"
-              variant="default"
-              disabled={loading}
-              onClick={fetchAnomalies}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Detecting Anomalies...
-                </>
-              ) : (
-                <>
-                  <Scan className="mr-2 h-4 w-4" />
-                  Detect Anomalies
-                </>
-              )}
-            </Button>
-            
-            {error ? (
-              <div className="text-center py-6">
-                <p className="text-lg font-medium mb-2">Could not detect anomalies</p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-              </div>
-            ) : anomalies.length === 0 && !loading ? (
-              <div className="text-center py-6">
-                <p className="text-lg font-medium mb-2">No anomalies detected</p>
-                <p className="text-sm text-muted-foreground">
-                  Either there are no anomalies in this dataset, or the selected method
-                  couldn't detect any significant outliers.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {anomalies.map((fieldAnomalies, index) => {
-                  if (fieldAnomalies.anomalies.length === 0) return null
-                  
-                  const stats = getFieldStats(fieldAnomalies)
-                  
-                  return (
-                    <div key={index} className="border rounded-lg overflow-hidden">
-                      <div className="bg-muted p-3 flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium">{fieldAnomalies.field}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {fieldAnomalies.anomalies.length} anomalies detected using {fieldAnomalies.method} method
-                          </p>
-                        </div>
-                        <Badge variant="secondary">
-                          {Math.round(fieldAnomalies.anomalies.length / 
-                            (fieldAnomalies.totalRows || fieldAnomalies.anomalies.length * 10) * 100)}% are anomalies
-                        </Badge>
-                      </div>
-                      
-                      <div className="overflow-auto max-h-48">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left p-2 font-medium text-xs">Value</th>
-                              <th className="text-left p-2 font-medium text-xs">Timestamp</th>
-                              <th className="text-left p-2 font-medium text-xs">Other Data</th>
-                              <th className="text-left p-2 font-medium text-xs">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {fieldAnomalies.anomalies.slice(0, 5).map((anomaly: any, i: number) => (
-                              <tr key={i} className={`hover:bg-muted/20 ${
-                                getAnomalySeverityColor(anomaly.value, stats.avg, stats.max)
-                              }`}>
-                                <td className="p-2 font-mono">
-                                  {typeof anomaly.value === 'number' 
-                                    ? anomaly.value.toFixed(2) 
-                                    : anomaly.value}
-                                </td>
-                                <td className="p-2">
-                                  {new Date(anomaly.createdAt).toLocaleString()}
-                                </td>
-                                <td className="p-2 truncate max-w-[200px]">
-                                  {Object.entries(anomaly.row)
-                                    .filter(([key]) => key !== fieldAnomalies.field)
-                                    .slice(0, 3)
-                                    .map(([key, value]) => (
-                                      <div key={key} className="text-xs">
-                                        <span className="text-muted-foreground">{key}: </span>
-                                        <span>{String(value).substring(0, 30)}</span>
-                                      </div>
-                                    ))}
-                                </td>
-                                <td className="p-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => handleSelectAnomaly(fieldAnomalies, anomaly)}
-                                  >
-                                    <Zap className="h-3.5 w-3.5 mr-1" />
-                                    Act
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      {fieldAnomalies.anomalies.length > 5 && (
-                        <div className="p-2 text-center text-xs text-muted-foreground">
-                          Showing 5 of {fieldAnomalies.anomalies.length} anomalies
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="space-y-4">
-            <InsightActionPanel 
-              insight={selectedAnomaly} 
-              onActionComplete={handleActionComplete}
-            />
-            <div className="text-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedAnomaly(null)}
+            <div className="w-1/2">
+              <label className="block text-sm font-medium mb-2">Field</label>
+              <select
+                value={selectedField || ''}
+                onChange={(e) => setSelectedField(e.target.value || null)}
+                disabled={availableFields.length === 0}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               >
-                Back to Anomalies
-              </Button>
+                <option value="">All fields</option>
+                {availableFields.map(field => (
+                  <option key={field} value={field}>{field}</option>
+                ))}
+              </select>
             </div>
           </div>
-        )}
-      </CardContent>
+          
+          <Button 
+            className="w-full mb-4"
+            variant="primary"
+            disabled={loading}
+            onClick={fetchAnomalies}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Detecting Anomalies...
+              </>
+            ) : (
+              <>
+                <Scan className="mr-2 h-4 w-4" />
+                Detect Anomalies
+              </>
+            )}
+          </Button>
+          
+          {error ? (
+            <div className="text-center py-6">
+              <p className="text-lg font-medium mb-2">Could not detect anomalies</p>
+              <p className="text-sm text-gray-600">{error}</p>
+            </div>
+          ) : anomalies.length === 0 && !loading ? (
+            <div className="text-center py-6">
+              <p className="text-lg font-medium mb-2">No anomalies detected</p>
+              <p className="text-sm text-gray-600">
+                Either there are no anomalies in this dataset, or the selected method
+                couldn't detect any significant outliers.
+              </p>
+            </div>
+          ) : anomalies.length > 0 ? (
+            <div className="space-y-4">
+              {/* Tab Navigation */}
+              <div className="flex space-x-1 border-b border-gray-200">
+                <TabButton 
+                  id="detection" 
+                  label="Detection Results" 
+                  active={activeTab === 'detection'} 
+                  onClick={() => setActiveTab('detection')}
+                />
+                <TabButton 
+                  id="summary" 
+                  label="Summary" 
+                  active={activeTab === 'summary'} 
+                  onClick={() => setActiveTab('summary')}
+                />
+              </div>
+
+              {activeTab === 'detection' && (
+                <div className="space-y-4">
+                  {anomalies.map((fieldAnomalies, index) => {
+                    const stats = getFieldStats(fieldAnomalies)
+                    
+                    return (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-lg">{fieldAnomalies.field}</h4>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              {fieldAnomalies.method}
+                            </Badge>
+                            <Badge variant="outline">
+                              {fieldAnomalies.anomalies.length} anomalies
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm text-gray-600 mb-3">
+                          Range: {stats.min.toFixed(2)} - {stats.max.toFixed(2)} | 
+                          Average: {stats.avg.toFixed(2)}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {fieldAnomalies.anomalies.map((anomaly: any, anomalyIndex: number) => (
+                            <div 
+                              key={anomalyIndex}
+                              className={`p-3 rounded border cursor-pointer hover:shadow-sm ${getAnomalySeverityColor(anomaly.value, stats.avg, stats.max)}`}
+                              onClick={() => handleSelectAnomaly(fieldAnomalies, anomaly)}
+                            >
+                              <div className="font-medium">{anomaly.value}</div>
+                              {anomaly.index !== undefined && (
+                                <div className="text-xs text-gray-600">Row {anomaly.index}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {activeTab === 'summary' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {anomalies.length}
+                      </div>
+                      <div className="text-sm text-blue-600">Fields with Anomalies</div>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 rounded">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {anomalies.reduce((sum, field) => sum + field.anomalies.length, 0)}
+                      </div>
+                      <div className="text-sm text-yellow-600">Total Anomalies</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded">
+                      <div className="text-2xl font-bold text-green-600">
+                        {method.toUpperCase()}
+                      </div>
+                      <div className="text-sm text-green-600">Detection Method</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {anomalies.map((fieldAnomalies, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded">
+                        <span className="font-medium">{fieldAnomalies.field}</span>
+                        <Badge variant="secondary">
+                          {fieldAnomalies.anomalies.length} anomalies
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <InsightActionPanel
+          insight={selectedAnomaly}
+          onActionComplete={handleActionComplete}
+          onCancel={() => setSelectedAnomaly(null)}
+        />
+      )}
     </Card>
   )
 } 

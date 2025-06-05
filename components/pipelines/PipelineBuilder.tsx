@@ -14,9 +14,7 @@ import ReactFlow, {
   Node,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import Button from '../../app/components/ui/Button'
 
 interface PipelineBuilderProps {
   missionId?: string;
@@ -92,21 +90,23 @@ export default function PipelineBuilder({
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="pipeline-name">Pipeline Name</Label>
-          <Input 
+          <label htmlFor="pipeline-name" className="block text-sm font-medium mb-2">Pipeline Name</label>
+          <input 
             id="pipeline-name" 
             value={name} 
             onChange={(e) => setName(e.target.value)} 
             placeholder="Pipeline Name"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <div>
-          <Label htmlFor="pipeline-description">Description (Optional)</Label>
-          <Input 
+          <label htmlFor="pipeline-description" className="block text-sm font-medium mb-2">Description (Optional)</label>
+          <input 
             id="pipeline-description" 
             value={description} 
             onChange={(e) => setDescription(e.target.value)} 
             placeholder="Brief description of this pipeline"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
       </div>
@@ -117,7 +117,7 @@ export default function PipelineBuilder({
         <Button onClick={() => addNode('logic')}>Add Logic</Button>
         <Button onClick={() => addNode('agent')}>Add Agent</Button>
         <Button 
-          variant="default" 
+          variant="primary" 
           onClick={savePipeline}
           disabled={saving || !name.trim() || nodes.length === 0}
           className="ml-auto"

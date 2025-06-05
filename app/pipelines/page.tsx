@@ -4,16 +4,8 @@ import React, { useState, useEffect } from 'react';
 import PipelineBuilder from '@/components/pipelines/PipelineBuilder';
 import PipelineScheduler from '@/components/pipelines/PipelineScheduler';
 import PipelineHistory from '@/components/pipelines/PipelineHistory';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { toast } from '@/components/ui/use-toast';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 
 interface Pipeline {
   id: string;
@@ -21,6 +13,39 @@ interface Pipeline {
   description?: string;
   missionId: string;
   createdAt: string;
+}
+
+// Simple Tab components since we don't have the UI library
+const TabButton = ({ id, label, active, disabled, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  disabled?: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : disabled
+        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {label}
+  </button>
+)
+
+// Simple toast function
+const toast = ({ title, description, variant }: { 
+  title: string; 
+  description: string; 
+  variant?: string;
+}) => {
+  console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`)
+  // In a real app, this would show a proper toast notification
 }
 
 export default function PipelinesPage() {
@@ -112,32 +137,47 @@ export default function PipelinesPage() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Pipeline Manager</h1>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="builder">Builder</TabsTrigger>
-          <TabsTrigger value="pipelines">Pipelines</TabsTrigger>
-          <TabsTrigger 
-            value="scheduler" 
-            disabled={!selectedPipeline}
-          >
-            Scheduler
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history"
-            disabled={!selectedPipeline}
-          >
-            History
-          </TabsTrigger>
-        </TabsList>
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 border-b border-gray-200 mb-4">
+        <TabButton 
+          id="builder" 
+          label="Builder" 
+          active={activeTab === 'builder'} 
+          onClick={() => setActiveTab('builder')}
+        />
+        <TabButton 
+          id="pipelines" 
+          label="Pipelines" 
+          active={activeTab === 'pipelines'} 
+          onClick={() => setActiveTab('pipelines')}
+        />
+        <TabButton 
+          id="scheduler" 
+          label="Scheduler" 
+          active={activeTab === 'scheduler'} 
+          disabled={!selectedPipeline}
+          onClick={() => setActiveTab('scheduler')}
+        />
+        <TabButton 
+          id="history" 
+          label="History" 
+          active={activeTab === 'history'} 
+          disabled={!selectedPipeline}
+          onClick={() => setActiveTab('history')}
+        />
+      </div>
         
-        <TabsContent value="builder" className="border rounded-lg p-4">
+      {activeTab === 'builder' && (
+        <div className="border rounded-lg p-4">
           <PipelineBuilder 
             missionId={missionId} 
             onPipelineSaved={handlePipelineSaved} 
           />
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="pipelines" className="border rounded-lg p-4">
+      {activeTab === 'pipelines' && (
+        <div className="border rounded-lg p-4">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Your Pipelines</h2>
@@ -151,47 +191,42 @@ export default function PipelinesPage() {
             ) : pipelines.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pipelines.map(pipeline => (
-                  <Card key={pipeline.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <CardTitle>{pipeline.name}</CardTitle>
-                      <CardDescription>
-                        {pipeline.description || 'No description provided'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Created: {new Date(pipeline.createdAt).toLocaleDateString()}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedPipeline(pipeline.id);
-                            setActiveTab('scheduler');
-                          }}
-                        >
-                          Schedule
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => runPipeline(pipeline.id)}
-                          disabled={executing}
-                        >
-                          {executing ? 'Running...' : 'Run Now'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedPipeline(pipeline.id);
-                            setActiveTab('history');
-                          }}
-                        >
-                          History
-                        </Button>
-                      </div>
-                    </CardContent>
+                  <Card key={pipeline.id} title={pipeline.name}>
+                    <p className="text-gray-600 mb-4">
+                      {pipeline.description || 'No description provided'}
+                    </p>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Created: {new Date(pipeline.createdAt).toLocaleDateString()}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedPipeline(pipeline.id);
+                          setActiveTab('scheduler');
+                        }}
+                      >
+                        Schedule
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        onClick={() => runPipeline(pipeline.id)}
+                        disabled={executing}
+                      >
+                        {executing ? 'Running...' : 'Run Now'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedPipeline(pipeline.id);
+                          setActiveTab('history');
+                        }}
+                      >
+                        History
+                      </Button>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -204,42 +239,23 @@ export default function PipelinesPage() {
               </div>
             )}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="scheduler" className="border rounded-lg p-4">
-          {selectedPipeline ? (
-            <PipelineScheduler 
-              pipelineId={selectedPipeline}
-              accountId={accountId}
-              onScheduleSaved={handleScheduleSaved}
-            />
-          ) : (
-            <div className="text-center p-8">
-              <p className="mb-4">No pipeline selected. Select a pipeline first.</p>
-              <Button onClick={() => setActiveTab('pipelines')}>
-                View Pipelines
-              </Button>
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="history" className="border rounded-lg p-4">
-          {selectedPipeline ? (
-            <PipelineHistory 
-              pipelineId={selectedPipeline}
-              accountId={accountId}
-              limit={20}
-            />
-          ) : (
-            <div className="text-center p-8">
-              <p className="mb-4">No pipeline selected. Select a pipeline first.</p>
-              <Button onClick={() => setActiveTab('pipelines')}>
-                View Pipelines
-              </Button>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+
+      {activeTab === 'scheduler' && selectedPipeline && (
+        <div className="border rounded-lg p-4">
+          <PipelineScheduler 
+            pipelineId={selectedPipeline} 
+            onScheduleSaved={handleScheduleSaved} 
+          />
+        </div>
+      )}
+
+      {activeTab === 'history' && selectedPipeline && (
+        <div className="border rounded-lg p-4">
+          <PipelineHistory pipelineId={selectedPipeline} />
+        </div>
+      )}
     </div>
   );
 } 

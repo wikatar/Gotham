@@ -185,6 +185,12 @@ export default function Sidebar() {
             collapsed={collapsed}
           />
           <SidebarItem 
+            icon="⚡" 
+            label="Logic Engine" 
+            href="/logic-engine-demo"
+            collapsed={collapsed}
+          />
+          <SidebarItem 
             icon="🔌" 
             label="Data Integrations" 
             href="/data-integrations"

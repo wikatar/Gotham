@@ -1,11 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
 import { 
   GitBranch, 
   Search, 
@@ -24,6 +22,25 @@ import {
   useLineage,
   useLineageStats
 } from '@/app/components/lineage'
+
+// Simple Tab components
+const TabButton = ({ id, label, active, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {label}
+  </button>
+)
 
 export default function LineagePage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -85,7 +102,7 @@ export default function LineagePage() {
             </div>
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={refresh}
                 disabled={loading}
                 className="flex items-center gap-2"
@@ -94,7 +111,7 @@ export default function LineagePage() {
                 {loading ? 'Uppdaterar...' : 'Uppdatera'}
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 className="flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
@@ -105,255 +122,246 @@ export default function LineagePage() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <GitBranch className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Totala Steg</p>
-                    <p className="text-xl font-bold">{stats.totalSteps?.toLocaleString() || 0}</p>
-                  </div>
+            <Card title="Totala Steg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <GitBranch className="h-5 w-5 text-blue-600" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xl font-bold">{stats.totalSteps?.toLocaleString() || 0}</p>
+                </div>
+              </div>
             </Card>
             
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Cpu className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Aktiva Pipelines</p>
-                    <p className="text-xl font-bold">{stats.pipelineCount || 0}</p>
-                  </div>
+            <Card title="Aktiva Pipelines">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <Cpu className="h-5 w-5 text-green-600" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xl font-bold">{stats.pipelineCount || 0}</p>
+                </div>
+              </div>
             </Card>
             
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Database className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Datakällor</p>
-                    <p className="text-xl font-bold">{stats.sourceCount || 0}</p>
-                  </div>
+            <Card title="Datakällor">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Database className="h-5 w-5 text-purple-600" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xl font-bold">{stats.sourceCount || 0}</p>
+                </div>
+              </div>
             </Card>
             
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Framgångsgrad</p>
-                    <p className="text-xl font-bold">{stats.successRate || 0}%</p>
-                  </div>
+            <Card title="Framgångsgrad">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-orange-600" />
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-xl font-bold">{stats.successRate || 0}%</p>
+                </div>
+              </div>
             </Card>
           </div>
         </div>
 
         {/* Search and Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Sök och Filtrera
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sök i steg
-                </label>
-                <Input
-                  placeholder="Sök efter steg, källa eller agent..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Entitet ID
-                </label>
-                <Input
-                  placeholder="Ange entitet ID..."
-                  value={selectedEntityId}
-                  onChange={(e) => handleEntitySearch(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pipeline ID
-                </label>
-                <Input
-                  placeholder="Ange pipeline ID..."
-                  value={selectedPipelineId}
-                  onChange={(e) => handlePipelineSearch(e.target.value)}
-                  className="w-full"
-                />
-              </div>
+        <Card title="Sök och Filtrera">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sök i steg
+              </label>
+              <input
+                placeholder="Sök efter steg, källa eller agent..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
-            
-            {(selectedEntityId || selectedPipelineId || searchQuery) && (
-              <div className="flex items-center gap-2 mt-4">
-                <span className="text-sm text-gray-600">Aktiva filter:</span>
-                {selectedEntityId && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Entitet: {selectedEntityId}
-                    <button 
-                      onClick={() => setSelectedEntityId('')}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {selectedPipelineId && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Pipeline: {selectedPipelineId}
-                    <button 
-                      onClick={() => setSelectedPipelineId('')}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {searchQuery && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Sökning: {searchQuery}
-                    <button 
-                      onClick={() => setSearchQuery('')}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-              </div>
-            )}
-          </CardContent>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Entitet ID
+              </label>
+              <input
+                placeholder="Ange entitet ID..."
+                value={selectedEntityId}
+                onChange={(e) => handleEntitySearch(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pipeline ID
+              </label>
+              <input
+                placeholder="Ange pipeline ID..."
+                value={selectedPipelineId}
+                onChange={(e) => handlePipelineSearch(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
         </Card>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="visualization">Visualisering</TabsTrigger>
-            <TabsTrigger value="compact">Kompakt Vy</TabsTrigger>
-            <TabsTrigger value="realtime">Realtid</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard" className="mt-6">
-            <LineageDashboard
-              entityId={selectedEntityId || undefined}
-              pipelineId={selectedPipelineId || undefined}
-              title="Lineage Analytics"
+        <div className="mt-6">
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 border-b border-gray-200 mb-4">
+            <TabButton 
+              id="dashboard" 
+              label="Dashboard" 
+              active={activeTab === 'dashboard'} 
+              onClick={() => setActiveTab('dashboard')}
             />
-          </TabsContent>
-
-          <TabsContent value="visualization" className="mt-6">
-            <LineageVisualization
-              entityId={selectedEntityId || undefined}
-              pipelineId={selectedPipelineId || undefined}
-              steps={filteredSteps}
-              title="Detaljerad Lineage Visualisering"
-              showFilters={true}
+            <TabButton 
+              id="visualization" 
+              label="Visualisering" 
+              active={activeTab === 'visualization'} 
+              onClick={() => setActiveTab('visualization')}
             />
-          </TabsContent>
-
-          <TabsContent value="compact" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              <LineageCompact
-                steps={filteredSteps}
-                title="Senaste Aktivitet"
-                maxSteps={10}
-                onViewAll={() => setActiveTab('visualization')}
-              />
-              
-              <LineageCompact
-                steps={filteredSteps.filter(s => s.step.includes('success') || s.step.includes('complete'))}
-                title="Framgångsrika Steg"
-                maxSteps={8}
-                onViewAll={() => setActiveTab('visualization')}
-              />
-              
-              <LineageCompact
-                steps={filteredSteps.filter(s => s.step.includes('failed') || s.step.includes('error'))}
-                title="Misslyckade Steg"
-                maxSteps={8}
-                onViewAll={() => setActiveTab('visualization')}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="realtime" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Realtids Lineage Monitoring
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Realtids Monitoring
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Realtids WebSocket-integration för live lineage updates kommer snart...
-                  </p>
-                  <Button variant="outline">
-                    Aktivera Realtids Monitoring
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Load More */}
-        {hasMore && activeTab === 'visualization' && (
-          <div className="text-center mt-6">
-            <Button
-              variant="outline"
-              onClick={loadMore}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              {loading ? 'Laddar...' : 'Ladda fler steg'}
-            </Button>
+            <TabButton 
+              id="compact" 
+              label="Kompakt Vy" 
+              active={activeTab === 'compact'} 
+              onClick={() => setActiveTab('compact')}
+            />
+            <TabButton 
+              id="list" 
+              label="Lista" 
+              active={activeTab === 'list'} 
+              onClick={() => setActiveTab('list')}
+            />
           </div>
-        )}
 
-        {/* Error State */}
-        {error && (
-          <Card className="mt-6 border-red-200 bg-red-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-red-800">
-                <Activity className="h-5 w-5" />
-                <span className="font-medium">Fel vid laddning av lineage data:</span>
-                <span>{error}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          {/* Tab Content */}
+          {activeTab === 'dashboard' && (
+            <LineageDashboard 
+              entityId={selectedEntityId || undefined}
+              pipelineId={selectedPipelineId || undefined}
+            />
+          )}
+
+          {activeTab === 'visualization' && (
+            <LineageVisualization 
+              entityId={selectedEntityId || undefined}
+              pipelineId={selectedPipelineId || undefined}
+              height="600px"
+            />
+          )}
+
+          {activeTab === 'compact' && (
+            <LineageCompact 
+              entityId={selectedEntityId || undefined}
+              pipelineId={selectedPipelineId || undefined}
+              limit={50}
+            />
+          )}
+
+          {activeTab === 'list' && (
+            <Card title="Lineage Steg">
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                  <p className="text-red-800">Fel vid hämtning av lineage data: {error}</p>
+                </div>
+              )}
+
+              {loading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Laddar lineage data...</p>
+                </div>
+              )}
+
+              {!loading && filteredSteps.length === 0 && (
+                <div className="text-center py-8">
+                  <GitBranch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Inga lineage steg hittades</p>
+                  {(selectedEntityId || selectedPipelineId || searchQuery) && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Prova att ändra dina sökkriterier
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!loading && filteredSteps.length > 0 && (
+                <div className="space-y-4">
+                  {filteredSteps.map((step, index) => (
+                    <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="secondary">
+                              {step.step}
+                            </Badge>
+                            {step.source && (
+                              <Badge variant="outline">
+                                {step.source}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {step.entityId && (
+                              <p><strong>Entitet:</strong> {step.entityId}</p>
+                            )}
+                            {step.pipelineId && (
+                              <p><strong>Pipeline:</strong> {step.pipelineId}</p>
+                            )}
+                            {step.agentId && (
+                              <p><strong>Agent:</strong> {step.agentId}</p>
+                            )}
+                            <p><strong>Tidsstämpel:</strong> {new Date(step.timestamp).toLocaleString('sv-SE')}</p>
+                          </div>
+
+                          {step.metadata && Object.keys(step.metadata).length > 0 && (
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-sm font-medium text-blue-600">
+                                Visa metadata
+                              </summary>
+                              <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
+                                {JSON.stringify(step.metadata, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              if (step.entityId) handleEntitySearch(step.entityId)
+                            }}
+                            disabled={!step.entityId}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {hasMore && (
+                    <div className="text-center pt-4">
+                      <Button
+                        onClick={loadMore}
+                        disabled={loading}
+                        variant="secondary"
+                      >
+                        {loading ? 'Laddar...' : 'Ladda fler'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   )

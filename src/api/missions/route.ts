@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { runRulesForMission } from '../../../app/lib/logicEngine';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -202,7 +203,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
     
-    // Check if owner exists and belongs to the account if provided
+    // Check if owner exists and belongs to the account (if updating owner)
     if (updateData.ownerId) {
       const owner = await prisma.user.findFirst({
         where: {
@@ -220,7 +221,7 @@ export async function PATCH(req: NextRequest) {
     }
     
     // Update the mission
-    const mission = await prisma.mission.update({
+    const updatedMission = await prisma.mission.update({
       where: { id },
       data: updateData,
       include: {
@@ -233,8 +234,56 @@ export async function PATCH(req: NextRequest) {
         },
       },
     });
+
+    // Run logic rules on the updated mission data
+    try {
+      const logicResult = await runRulesForMission(
+        id,
+        updatedMission,
+        updateData.ownerId || existingMission.ownerId || 'system'
+      );
+
+      // Log logic engine execution if rules were triggered
+      if (logicResult.rulesTriggered > 0) {
+        await prisma.log.create({
+          data: {
+            accountId,
+            type: 'logic_engine_execution',
+            action: `Logic rules triggered for mission update: ${updatedMission.name}`,
+            resourceId: id,
+            resourceType: 'mission',
+            metadata: {
+              rulesTriggered: logicResult.rulesTriggered,
+              actionsExecuted: logicResult.actionsExecuted,
+              executionTime: logicResult.executionTime,
+              actionResults: logicResult.actionResults,
+              changedFields: Object.keys(updateData)
+            },
+          },
+        });
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        mission: updatedMission,
+        logicEngine: {
+          rulesTriggered: logicResult.rulesTriggered,
+          actionsExecuted: logicResult.actionsExecuted
+        }
+      });
+    } catch (logicError) {
+      console.error('Logic engine error for mission update:', logicError);
+      // Don't fail the mission update if logic rules fail
+      return NextResponse.json({ 
+        success: true, 
+        mission: updatedMission,
+        logicEngine: {
+          error: 'Logic engine execution failed',
+          details: String(logicError)
+        }
+      });
+    }
     
-    return NextResponse.json({ success: true, mission });
   } catch (error) {
     console.error('Error updating mission:', error);
     

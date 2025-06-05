@@ -1,151 +1,250 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Check, Loader2 } from 'lucide-react'
+import Button from '../../app/components/ui/Button'
+import Card from '../../app/components/ui/Card'
+import Badge from '../../app/components/ui/Badge'
+import { CheckCircle, AlertCircle, Clock, Send, FileText, Bell } from 'lucide-react'
 
 interface InsightActionPanelProps {
   insight: any
-  onActionComplete?: () => void
+  onActionComplete: () => void
+  onCancel?: () => void
 }
 
-export default function InsightActionPanel({
-  insight,
-  onActionComplete
+export default function InsightActionPanel({ 
+  insight, 
+  onActionComplete,
+  onCancel 
 }: InsightActionPanelProps) {
-  const [status, setStatus] = useState<'idle' | 'processing' | 'done'>('idle')
-  const [selectedAction, setSelectedAction] = useState<string | null>(null)
+  const [selectedAction, setSelectedAction] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [actionResult, setActionResult] = useState<any>(null)
 
-  // Determine the actions based on insight type
-  const getActions = () => {
-    const commonActions = [
-      { label: '📨 Send Slack alert', value: 'slack' },
-      { label: '📧 Send email notification', value: 'email' },
-      { label: '📝 Create ticket', value: 'ticket' },
-      { label: '🚫 Ignore', value: 'ignore' },
-    ]
-    
-    switch (insight.type) {
-      case 'anomaly':
-        return [
-          { label: '🔍 Investigate anomaly', value: 'investigate' },
-          ...commonActions,
-        ]
-      case 'trend':
-        return [
-          { label: '📊 Create trend report', value: 'report' },
-          ...commonActions,
-        ]
-      case 'correlation':
-        return [
-          { label: '🔄 Schedule follow-up analysis', value: 'followup' },
-          ...commonActions,
-        ]
-      case 'recommendation':
-        return [
-          { label: '✅ Implement recommendation', value: 'implement' },
-          ...commonActions,
-        ]
-      default:
-        return commonActions
+  const availableActions = [
+    {
+      id: 'create_incident',
+      label: 'Create Incident',
+      description: 'Create an incident report based on this insight',
+      icon: <AlertCircle className="h-4 w-4" />
+    },
+    {
+      id: 'notify_team',
+      label: 'Notify Team',
+      description: 'Send notification to relevant team members',
+      icon: <Bell className="h-4 w-4" />
+    },
+    {
+      id: 'generate_report',
+      label: 'Generate Report',
+      description: 'Create a detailed report for this insight',
+      icon: <FileText className="h-4 w-4" />
+    },
+    {
+      id: 'schedule_review',
+      label: 'Schedule Review',
+      description: 'Schedule a review meeting to discuss this insight',
+      icon: <Clock className="h-4 w-4" />
     }
-  }
+  ]
 
-  const actions = getActions()
+  const executeAction = async () => {
+    if (!selectedAction) return
 
-  const takeAction = async (action: string) => {
-    setSelectedAction(action)
-    setStatus('processing')
+    setLoading(true)
     
     try {
-      const res = await fetch('/api/insight/act', {
+      const response = await fetch('/api/insights/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, insight }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: selectedAction,
+          insight: insight,
+          metadata: {
+            timestamp: new Date().toISOString(),
+            userId: 'current-user' // This should come from auth context
+          }
+        }),
       })
       
-      if (!res.ok) {
-        throw new Error('Action failed')
-      }
+      const result = await response.json()
       
-      setStatus('done')
-      
-      // Call the completion callback if provided
-      if (onActionComplete) {
+      if (result.success) {
+        setActionResult({
+          success: true,
+          message: result.message || 'Action completed successfully',
+          data: result.data
+        })
+        
+        // Auto-complete after 3 seconds
         setTimeout(() => {
           onActionComplete()
-        }, 1500) // Show success state before calling callback
+        }, 3000)
+      } else {
+        setActionResult({
+          success: false,
+          message: result.message || 'Action failed',
+          error: result.error
+        })
       }
     } catch (error) {
-      console.error('Error taking action:', error)
-      setStatus('idle')
-      setSelectedAction(null)
+      console.error('Error executing action:', error)
+      setActionResult({
+        success: false,
+        message: 'Failed to execute action',
+        error: error
+      })
     }
+    
+    setLoading(false)
   }
 
-  // Generate insight summary based on insight type
-  const getInsightSummary = () => {
-    if (!insight) return 'No insight data'
-    
-    switch (insight.type) {
-      case 'trend':
-        return `${insight.field} is ${insight.percentChange > 0 ? 'increasing' : 'decreasing'} by ${Math.abs(insight.percentChange).toFixed(1)}%`
-      case 'anomaly':
-        return `Anomaly in ${insight.field}: value ${insight.value} is outside normal range`
-      case 'correlation':
-        return `${insight.correlation > 0 ? 'Positive' : 'Negative'} correlation (${insight.correlation.toFixed(2)}) between ${insight.fields?.join(' and ')}`
-      default:
-        return insight.title || 'Insight'
-    }
+  if (actionResult) {
+    return (
+      <Card title="Action Result">
+        <div className="text-center py-6">
+          {actionResult.success ? (
+            <>
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-green-800 mb-2">
+                Action Completed Successfully
+              </h3>
+              <p className="text-sm text-green-600 mb-4">
+                {actionResult.message}
+              </p>
+              {actionResult.data && (
+                <div className="bg-green-50 p-3 rounded text-left text-xs">
+                  <pre>{JSON.stringify(actionResult.data, null, 2)}</pre>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-red-800 mb-2">
+                Action Failed
+              </h3>
+              <p className="text-sm text-red-600 mb-4">
+                {actionResult.message}
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant="secondary"
+                  onClick={() => setActionResult(null)}
+                >
+                  Try Again
+                </Button>
+                {onCancel && (
+                  <Button
+                    variant="secondary"
+                    onClick={onCancel}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+    )
   }
 
   return (
-    <Card className="p-4 space-y-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="font-semibold">
-            {getInsightSummary()}
+    <Card title="Take Action on Insight">
+      <div className="space-y-4">
+        {/* Insight Summary */}
+        <div className="bg-gray-50 p-4 rounded">
+          <div className="flex items-center gap-2 mb-2">
+            <h4 className="font-medium">{insight.title}</h4>
+            {insight.type && (
+              <Badge variant="secondary">
+                {insight.type}
+              </Badge>
+            )}
+            {insight.confidence && (
+              <Badge variant="outline">
+                {insight.confidence}% confidence
+              </Badge>
+            )}
           </div>
-          <div className="text-sm text-muted-foreground mt-1">
-            {insight.content?.substring(0, 100)}{insight.content?.length > 100 ? '...' : ''}
+          <p className="text-sm text-gray-600">
+            {insight.content}
+          </p>
+        </div>
+
+        {/* Action Selection */}
+        <div>
+          <h5 className="font-medium mb-3">Select an action:</h5>
+          <div className="space-y-2">
+            {availableActions.map((action) => (
+              <div
+                key={action.id}
+                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                  selectedAction === action.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedAction(action.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-gray-600">
+                    {action.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">{action.label}</div>
+                    <div className="text-sm text-gray-600">{action.description}</div>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className={`w-4 h-4 rounded-full border-2 ${
+                      selectedAction === action.id
+                        ? 'border-blue-500 bg-blue-500'
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedAction === action.id && (
+                        <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        {insight.confidence && (
-          <Badge variant="outline" className="ml-2">
-            {insight.confidence}% confidence
-          </Badge>
-        )}
-      </div>
-      
-      <div className="text-sm font-medium">Take action:</div>
-      <div className="flex flex-wrap gap-2">
-        {actions.map((a) => (
-          <Button 
-            key={a.value} 
-            variant={selectedAction === a.value ? "default" : "secondary"} 
-            size="sm"
-            onClick={() => takeAction(a.value)}
-            disabled={status !== 'idle'}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-4">
+          <Button
+            variant="primary"
+            disabled={!selectedAction || loading}
+            onClick={executeAction}
+            className="flex-1"
           >
-            {a.label}
-            {status === 'processing' && selectedAction === a.value && (
-              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            )}
-            {status === 'done' && selectedAction === a.value && (
-              <Check className="ml-2 h-4 w-4" />
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Executing...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Execute Action
+              </>
             )}
           </Button>
-        ))}
+          {onCancel && (
+            <Button
+              variant="secondary"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
       </div>
-      
-      {status === 'processing' && (
-        <div className="text-xs text-blue-500">🧠 Processing action...</div>
-      )}
-      {status === 'done' && (
-        <div className="text-xs text-green-500">✅ Action completed successfully!</div>
-      )}
     </Card>
   )
 } 

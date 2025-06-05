@@ -1,22 +1,41 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import DataCleaner from '@/components/data/DataCleaner'
-import DataCleaningPipelineList from '@/components/data/DataCleaningPipelineList'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import DataCleaner from '@/components/data/DataCleaner'
+import CleanedDataViewer from '@/components/data/CleanedDataViewer'
+import Button from '../../components/ui/Button'
+import Link from 'next/link'
+import Card from '../../components/ui/Card'
+
+// Simple Tab components
+const TabButton = ({ id, label, active, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {label}
+  </button>
+)
 
 export default function DataCleanerPage() {
   const params = useParams()
   const sourceId = params.id as string
   const [sourceInfo, setSourceInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('cleaner')
 
   useEffect(() => {
-    // Fetch source information
+    setLoading(true)
     fetch(`/api/data/source/info/${sourceId}`)
       .then(res => res.json())
       .then(data => {
@@ -32,51 +51,53 @@ export default function DataCleanerPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Data Cleaning Pipeline</h1>
-        <div className="flex gap-2">
-          <Link href={`/data-sources`}>
-            <Button variant="outline">Back to Sources</Button>
-          </Link>
-          <Link href={`/pipelines`}>
-            <Button variant="outline">View Pipelines</Button>
-          </Link>
-        </div>
+        <h1 className="text-3xl font-bold">Data Cleaner</h1>
+        <Link href="/data-sources">
+          <Button variant="secondary">Back to Sources</Button>
+        </Link>
       </div>
 
       {loading ? (
-        <Card className="p-6">
+        <Card title="Loading...">
           <div className="text-center py-8">Loading source information...</div>
         </Card>
       ) : sourceInfo ? (
         <>
           <div className="mb-6">
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold">Source: {sourceInfo.name}</h2>
-              <p className="text-sm text-muted-foreground">
-                {sourceInfo.recordCount} records • Imported on {new Date(sourceInfo.importedAt).toLocaleDateString()}
+            <Card title={sourceInfo.name}>
+              <p className="text-sm text-gray-600">
+                {sourceInfo.recordCount} records • Created {new Date(sourceInfo.createdAt).toLocaleDateString()}
               </p>
             </Card>
           </div>
           
-          <Tabs defaultValue="build" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="build">Build Pipeline</TabsTrigger>
-              <TabsTrigger value="list">Saved Pipelines</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="build" className="space-y-6">
-              <DataCleaner sourceId={sourceId} />
-            </TabsContent>
-            
-            <TabsContent value="list" className="space-y-6">
-              <DataCleaningPipelineList sourceId={sourceId} />
-            </TabsContent>
-          </Tabs>
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 border-b border-gray-200 mb-4">
+            <TabButton 
+              id="cleaner" 
+              label="Data Cleaner" 
+              active={activeTab === 'cleaner'} 
+              onClick={() => setActiveTab('cleaner')}
+            />
+            <TabButton 
+              id="viewer" 
+              label="View Cleaned Data" 
+              active={activeTab === 'viewer'} 
+              onClick={() => setActiveTab('viewer')}
+            />
+          </div>
+          
+          {activeTab === 'cleaner' && (
+            <DataCleaner sourceId={sourceId} />
+          )}
+          
+          {activeTab === 'viewer' && (
+            <CleanedDataViewer sourceId={sourceId} />
+          )}
         </>
       ) : (
-        <Card className="p-6 text-center">
-          <h2 className="text-xl font-bold mb-2">Data Source Not Found</h2>
-          <p className="text-muted-foreground mb-4">
+        <Card title="Source Not Found">
+          <p className="text-gray-600 mb-4">
             The data source you're looking for doesn't exist or isn't accessible.
           </p>
           <Link href="/data-sources">

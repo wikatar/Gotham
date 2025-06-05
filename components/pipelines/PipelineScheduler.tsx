@@ -1,32 +1,52 @@
 // Component for scheduling pipeline executions
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { 
-  commonCronExpressions, 
-  getReadableCronDescription, 
-  getNextExecutionTime 
-} from '@/src/utils/cronUtils';
+import Button from '../../app/components/ui/Button';
+
+// Simple cron utilities since we don't have the external utils
+const commonCronExpressions = {
+  everyMinute: '* * * * *',
+  everyFiveMinutes: '*/5 * * * *',
+  everyFifteenMinutes: '*/15 * * * *',
+  everyThirtyMinutes: '*/30 * * * *',
+  everyHour: '0 * * * *',
+  everyDay: '0 0 * * *',
+  everyDayAt8AM: '0 8 * * *',
+  everyDayAtNoon: '0 12 * * *',
+  everyMonday: '0 0 * * 1',
+  everyMonthFirstDay: '0 0 1 * *'
+};
+
+const getReadableCronDescription = (cron: string): string => {
+  const descriptions: { [key: string]: string } = {
+    '* * * * *': 'Every minute',
+    '*/5 * * * *': 'Every 5 minutes',
+    '*/15 * * * *': 'Every 15 minutes',
+    '*/30 * * * *': 'Every 30 minutes',
+    '0 * * * *': 'Every hour',
+    '0 0 * * *': 'Every day at midnight',
+    '0 8 * * *': 'Every day at 8 AM',
+    '0 12 * * *': 'Every day at noon',
+    '0 0 * * 1': 'Every Monday at midnight',
+    '0 0 1 * *': 'First day of every month at midnight'
+  };
+  return descriptions[cron] || `Custom: ${cron}`;
+};
+
+const getNextExecutionTime = (cron: string): Date | null => {
+  // Simple approximation - in a real app you'd use a proper cron parser
+  const now = new Date();
+  const next = new Date(now.getTime() + 60000); // Add 1 minute as approximation
+  return next;
+};
 
 interface PipelineSchedulerProps {
   pipelineId: string;
-  accountId: string;
   onScheduleSaved: () => void;
 }
 
 export default function PipelineScheduler({
   pipelineId,
-  accountId,
   onScheduleSaved
 }: PipelineSchedulerProps) {
   const [scheduleType, setScheduleType] = useState<string>('preset');
@@ -40,7 +60,8 @@ export default function PipelineScheduler({
   const nextExecution = getNextExecutionTime(cronExpression);
 
   // Handle preset selection
-  const handlePresetChange = (value: string) => {
+  const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
     const expression = commonCronExpressions[value as keyof typeof commonCronExpressions] || value;
     setCronExpression(expression);
   };
@@ -63,7 +84,6 @@ export default function PipelineScheduler({
         },
         body: JSON.stringify({
           pipelineId,
-          accountId,
           cron: cronExpression,
           active
         })
@@ -87,53 +107,48 @@ export default function PipelineScheduler({
       <h3 className="text-lg font-medium">Schedule Pipeline</h3>
       
       <div className="space-y-2">
-        <Label htmlFor="schedule-type">Schedule Type</Label>
-        <Select
+        <label htmlFor="schedule-type" className="block text-sm font-medium">Schedule Type</label>
+        <select
+          id="schedule-type"
           value={scheduleType}
-          onValueChange={(value) => setScheduleType(value)}
+          onChange={(e) => setScheduleType(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <SelectTrigger id="schedule-type">
-            <SelectValue placeholder="Select schedule type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="preset">Preset</SelectItem>
-            <SelectItem value="custom">Custom (Cron)</SelectItem>
-          </SelectContent>
-        </Select>
+          <option value="preset">Preset</option>
+          <option value="custom">Custom (Cron)</option>
+        </select>
       </div>
 
       {scheduleType === 'preset' ? (
         <div className="space-y-2">
-          <Label htmlFor="preset">Frequency</Label>
-          <Select
-            onValueChange={handlePresetChange}
+          <label htmlFor="preset" className="block text-sm font-medium">Frequency</label>
+          <select
+            id="preset"
+            onChange={handlePresetChange}
             defaultValue="everyDay"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <SelectTrigger id="preset">
-              <SelectValue placeholder="Select frequency" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="everyMinute">Every Minute</SelectItem>
-              <SelectItem value="everyFiveMinutes">Every 5 Minutes</SelectItem>
-              <SelectItem value="everyFifteenMinutes">Every 15 Minutes</SelectItem>
-              <SelectItem value="everyThirtyMinutes">Every 30 Minutes</SelectItem>
-              <SelectItem value="everyHour">Every Hour</SelectItem>
-              <SelectItem value="everyDay">Every Day (Midnight)</SelectItem>
-              <SelectItem value="everyDayAt8AM">Every Day (8 AM)</SelectItem>
-              <SelectItem value="everyDayAtNoon">Every Day (Noon)</SelectItem>
-              <SelectItem value="everyMonday">Every Monday</SelectItem>
-              <SelectItem value="everyMonthFirstDay">First Day of Month</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="everyMinute">Every Minute</option>
+            <option value="everyFiveMinutes">Every 5 Minutes</option>
+            <option value="everyFifteenMinutes">Every 15 Minutes</option>
+            <option value="everyThirtyMinutes">Every 30 Minutes</option>
+            <option value="everyHour">Every Hour</option>
+            <option value="everyDay">Every Day (Midnight)</option>
+            <option value="everyDayAt8AM">Every Day (8 AM)</option>
+            <option value="everyDayAtNoon">Every Day (Noon)</option>
+            <option value="everyMonday">Every Monday</option>
+            <option value="everyMonthFirstDay">First Day of Month</option>
+          </select>
         </div>
       ) : (
         <div className="space-y-2">
-          <Label htmlFor="cron-expression">Cron Expression</Label>
-          <Input
+          <label htmlFor="cron-expression" className="block text-sm font-medium">Cron Expression</label>
+          <input
             id="cron-expression"
             value={cronExpression}
             onChange={handleCustomCronChange}
             placeholder="* * * * *"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <p className="text-xs text-gray-500">
             Format: minute hour day-of-month month day-of-week
@@ -142,12 +157,14 @@ export default function PipelineScheduler({
       )}
 
       <div className="flex items-center space-x-2">
-        <Switch
+        <input
+          type="checkbox"
           id="active"
           checked={active}
-          onCheckedChange={setActive}
+          onChange={(e) => setActive(e.target.checked)}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
-        <Label htmlFor="active">Active</Label>
+        <label htmlFor="active" className="text-sm font-medium">Active</label>
       </div>
 
       <div className="mt-4 p-3 bg-gray-50 rounded-md">

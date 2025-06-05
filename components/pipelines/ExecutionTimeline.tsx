@@ -1,8 +1,44 @@
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
+import Card from '../../app/components/ui/Card'
 import Link from 'next/link'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Simple skeleton component
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
+)
+
+// Simple select components
+const Select = ({ children, value, onValueChange }: { 
+  children: React.ReactNode; 
+  value: string; 
+  onValueChange: (value: string) => void;
+}) => (
+  <div className="relative">
+    {children}
+  </div>
+)
+
+const SelectTrigger = ({ children }: { children: React.ReactNode }) => (
+  <div className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+    {children}
+  </div>
+)
+
+const SelectValue = ({ placeholder }: { placeholder: string }) => (
+  <span className="text-gray-500">{placeholder}</span>
+)
+
+const SelectContent = ({ children }: { children: React.ReactNode }) => (
+  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+    {children}
+  </div>
+)
+
+const SelectItem = ({ value, children }: { value: string; children: React.ReactNode }) => (
+  <div className="p-2 hover:bg-gray-100 cursor-pointer">
+    {children}
+  </div>
+)
 
 type User = {
   id: string

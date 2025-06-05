@@ -3,14 +3,34 @@
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import Button from '../../../components/ui/Button'
+import Card from '../../../components/ui/Card'
 import { ArrowLeft, GlobeIcon, LightbulbIcon, AlertCircle } from 'lucide-react'
 import AppLayout from '@/app/components/layout/AppLayout'
 import CleanedDataGlobe from '@/components/data-viz/CleanedDataGlobe'
 import DataInsights from '@/components/analytics/DataInsights'
 import AnomalyDisplay from '@/components/analytics/AnomalyDisplay'
+
+// Simple Tab components
+const TabButton = ({ id, label, active, icon, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  icon?: React.ReactNode;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors flex items-center ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {icon && <span className="mr-2">{icon}</span>}
+    {label}
+  </button>
+)
 
 export default function DataAnalyticsPage() {
   const params = useParams()
@@ -53,7 +73,7 @@ export default function DataAnalyticsPage() {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center">
             <Link href={`/data-cleaned/${sourceId}/${pipelineId}`}>
-              <Button variant="ghost" size="icon" className="mr-2">
+              <Button variant="secondary" className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -62,72 +82,82 @@ export default function DataAnalyticsPage() {
           
           <div className="flex gap-2">
             <Link href={`/data-sources`}>
-              <Button variant="outline">All Sources</Button>
+              <Button variant="secondary">All Sources</Button>
             </Link>
           </div>
         </div>
         
         {loading ? (
-          <Card className="p-6">
+          <Card title="Loading...">
             <div className="text-center py-8">Loading information...</div>
           </Card>
         ) : sourceInfo && pipelineInfo ? (
-          <Card className="p-4">
-            <h2 className="text-lg font-semibold">
-              Source: {sourceInfo.name} • Pipeline: {pipelineInfo.name}
-            </h2>
-            <p className="text-sm text-muted-foreground">
+          <Card title={`Source: ${sourceInfo.name} • Pipeline: ${pipelineInfo.name}`}>
+            <p className="text-sm text-gray-600">
               {sourceInfo.recordCount} original records • {pipelineInfo.steps.length} transformation steps
             </p>
           </Card>
         ) : (
-          <Card className="p-6 text-center">
-            <h2 className="text-xl font-bold mb-2">Information Not Found</h2>
-            <p className="text-muted-foreground mb-4">
+          <Card title="Information Not Found">
+            <p className="text-gray-600 mb-4">
               The data source or cleaning pipeline information couldn't be retrieved.
             </p>
           </Card>
         )}
       </div>
       
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="globe" className="flex items-center">
-            <GlobeIcon className="h-4 w-4 mr-2" />
-            Globe Visualization
-          </TabsTrigger>
-          <TabsTrigger value="insights" className="flex items-center">
-            <LightbulbIcon className="h-4 w-4 mr-2" />
-            AI Insights
-          </TabsTrigger>
-          <TabsTrigger value="anomalies" className="flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Anomaly Detection
-          </TabsTrigger>
-        </TabsList>
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 border-b border-gray-200 mb-4">
+        <TabButton 
+          id="globe" 
+          label="Globe Visualization" 
+          active={activeTab === 'globe'} 
+          icon={<GlobeIcon className="h-4 w-4" />}
+          onClick={() => setActiveTab('globe')}
+        />
+        <TabButton 
+          id="insights" 
+          label="AI Insights" 
+          active={activeTab === 'insights'} 
+          icon={<LightbulbIcon className="h-4 w-4" />}
+          onClick={() => setActiveTab('insights')}
+        />
+        <TabButton 
+          id="anomalies" 
+          label="Anomaly Detection" 
+          active={activeTab === 'anomalies'} 
+          icon={<AlertCircle className="h-4 w-4" />}
+          onClick={() => setActiveTab('anomalies')}
+        />
+      </div>
         
-        <TabsContent value="globe" className="space-y-4">
+      {activeTab === 'globe' && (
+        <div className="space-y-4">
           <CleanedDataGlobe 
             sourceId={sourceId} 
             pipelineId={pipelineId} 
             height="calc(100vh - 250px)"
           />
-        </TabsContent>
+        </div>
+      )}
         
-        <TabsContent value="insights" className="space-y-4">
+      {activeTab === 'insights' && (
+        <div className="space-y-4">
           <DataInsights 
             sourceId={sourceId} 
             pipelineId={pipelineId} 
           />
-        </TabsContent>
+        </div>
+      )}
         
-        <TabsContent value="anomalies" className="space-y-4">
+      {activeTab === 'anomalies' && (
+        <div className="space-y-4">
           <AnomalyDisplay 
             sourceId={sourceId} 
             pipelineId={pipelineId} 
           />
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </AppLayout>
   )
 } 

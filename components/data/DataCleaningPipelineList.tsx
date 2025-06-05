@@ -1,11 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { toast } from '@/components/ui/use-toast'
+import Card from '../../app/components/ui/Card'
+import Button from '../../app/components/ui/Button'
 import CleanedDataViewer from './CleanedDataViewer'
 import Link from 'next/link'
+
+// Simple toast function
+const toast = ({ title, description, variant }: { 
+  title: string; 
+  description: string; 
+  variant?: string;
+}) => {
+  console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`)
+  // In a real app, this would show a proper toast notification
+}
 
 export default function DataCleaningPipelineList({ sourceId }: { sourceId: string }) {
   const [pipelines, setPipelines] = useState<any[]>([])

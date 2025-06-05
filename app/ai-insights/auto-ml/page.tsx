@@ -6,7 +6,11 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 
 // Step 1: Problem Definition Component
-function ProblemDefinitionStep({ modelConfig, setModelConfig, onNext }) {
+function ProblemDefinitionStep({ modelConfig, setModelConfig, onNext }: {
+  modelConfig: any;
+  setModelConfig: (config: any) => void;
+  onNext: () => void;
+}) {
   const [selectedType, setSelectedType] = useState(modelConfig.problemType || '')
   
   const problemTypes = [
@@ -90,7 +94,12 @@ function ProblemDefinitionStep({ modelConfig, setModelConfig, onNext }) {
 }
 
 // Step 2: Data Selection Component
-function DataSelectionStep({ modelConfig, setModelConfig, onNext, onBack }) {
+function DataSelectionStep({ modelConfig, setModelConfig, onNext, onBack }: {
+  modelConfig: any;
+  setModelConfig: (config: any) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
   const [selectedDataset, setSelectedDataset] = useState(modelConfig.dataset || '')
   const [targetColumn, setTargetColumn] = useState(modelConfig.targetColumn || '')
   
@@ -111,7 +120,7 @@ function DataSelectionStep({ modelConfig, setModelConfig, onNext, onBack }) {
   ]
   
   // Sample columns for the selected dataset
-  const datasetColumns = {
+  const datasetColumns: { [key: string]: { name: string; type: string }[] } = {
     'dataset1': [
       { name: 'customer_id', type: 'string' },
       { name: 'tenure', type: 'number' },
@@ -230,11 +239,16 @@ function DataSelectionStep({ modelConfig, setModelConfig, onNext, onBack }) {
 }
 
 // Step 3: Feature Selection Component
-function FeatureSelectionStep({ modelConfig, setModelConfig, onNext, onBack }) {
+function FeatureSelectionStep({ modelConfig, setModelConfig, onNext, onBack }: {
+  modelConfig: any;
+  setModelConfig: (config: any) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
   const [selectedFeatures, setSelectedFeatures] = useState(modelConfig.features || [])
   
   // Sample columns from selected dataset with feature importance scores
-  const allFeatures = {
+  const allFeatures: { [key: string]: { name: string; type: string; importance: number; description: string }[] } = {
     'dataset1': [
       { name: 'tenure', type: 'number', importance: 0.85, description: 'How long the customer has been with the company' },
       { name: 'monthly_charges', type: 'number', importance: 0.78, description: 'The amount charged to the customer monthly' },
@@ -259,7 +273,7 @@ function FeatureSelectionStep({ modelConfig, setModelConfig, onNext, onBack }) {
   
   const availableFeatures = allFeatures[modelConfig.dataset] || []
   
-  const toggleFeature = (featureName) => {
+  const toggleFeature = (featureName: string) => {
     if (selectedFeatures.includes(featureName)) {
       setSelectedFeatures(selectedFeatures.filter(f => f !== featureName))
     } else {

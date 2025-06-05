@@ -65,7 +65,11 @@ const sampleRules = [
   }
 ];
 
-function SecurityRuleCard({ rule, onEdit, onToggle }) {
+function SecurityRuleCard({ rule, onEdit, onToggle }: { 
+  rule: any; 
+  onEdit: (rule: any) => void; 
+  onToggle: (rule: any) => void; 
+}) {
   return (
     <div className="border border-secondary/20 rounded-md p-4 mb-4">
       <div className="flex justify-between items-start">
@@ -127,7 +131,11 @@ function SecurityRuleCard({ rule, onEdit, onToggle }) {
   );
 }
 
-function SecurityRuleForm({ rule = null, onSave, onCancel }) {
+function SecurityRuleForm({ rule = null, onSave, onCancel }: {
+  rule?: any;
+  onSave: (rule: any) => void;
+  onCancel: () => void;
+}) {
   const [editedRule, setEditedRule] = useState(
     rule || {
       id: `rule-${Date.now()}`,
@@ -168,7 +176,7 @@ function SecurityRuleForm({ rule = null, onSave, onCancel }) {
     { value: 'redact', label: 'Redact [REDACTED]' }
   ];
   
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(editedRule);
   };
@@ -324,14 +332,14 @@ export default function CellLevelSecurityPage() {
   const [activeTab, setActiveTab] = useState('rules')
   const [rules, setRules] = useState(sampleRules)
   const [isAddingRule, setIsAddingRule] = useState(false)
-  const [editingRuleId, setEditingRuleId] = useState(null)
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
   
-  const handleEditRule = (ruleId) => {
+  const handleEditRule = (ruleId: string) => {
     setEditingRuleId(ruleId)
     setIsAddingRule(false)
   }
   
-  const handleToggleRule = (ruleId) => {
+  const handleToggleRule = (ruleId: string) => {
     setRules(
       rules.map(rule => 
         rule.id === ruleId ? { ...rule, active: !rule.active } : rule
@@ -339,7 +347,7 @@ export default function CellLevelSecurityPage() {
     )
   }
   
-  const handleSaveRule = (savedRule) => {
+  const handleSaveRule = (savedRule: any) => {
     if (editingRuleId) {
       // Update existing rule
       setRules(rules.map(rule => 
@@ -436,7 +444,7 @@ export default function CellLevelSecurityPage() {
       
       {/* Preview Tab */}
       {activeTab === 'preview' && (
-        <Card>
+        <Card title="Access Preview">
           <div className="p-6 text-center">
             <div className="text-3xl mb-4">👀</div>
             <h2 className="text-xl font-medium mb-2">Access Preview</h2>
@@ -453,7 +461,7 @@ export default function CellLevelSecurityPage() {
       
       {/* Audit Log Tab */}
       {activeTab === 'audit' && (
-        <Card>
+        <Card title="Audit Log">
           <div className="p-6 text-center">
             <div className="text-3xl mb-4">📋</div>
             <h2 className="text-xl font-medium mb-2">Audit Log</h2>

@@ -125,26 +125,26 @@ export default function AgentManagementPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="flex flex-col">
+        <Card title="Total Agents" className="flex flex-col">
           <div className="text-text-secondary text-sm mb-1">Total Agents</div>
           <div className="text-3xl font-bold">{agents.length}</div>
         </Card>
         
-        <Card className="flex flex-col">
+        <Card title="Active Agents" className="flex flex-col">
           <div className="text-text-secondary text-sm mb-1">Active Agents</div>
           <div className="text-3xl font-bold text-green-500">
             {agents.filter(a => a.status === 'active').length}
           </div>
         </Card>
         
-        <Card className="flex flex-col">
+        <Card title="Idle Agents" className="flex flex-col">
           <div className="text-text-secondary text-sm mb-1">Idle Agents</div>
           <div className="text-3xl font-bold text-yellow-500">
             {agents.filter(a => a.status === 'idle').length}
           </div>
         </Card>
         
-        <Card className="flex flex-col">
+        <Card title="Issues" className="flex flex-col">
           <div className="text-text-secondary text-sm mb-1">Issues</div>
           <div className="text-3xl font-bold text-red-500">
             {agents.filter(a => a.status === 'error').length}
@@ -153,7 +153,7 @@ export default function AgentManagementPage() {
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
+      <Card title="Filter Agents" className="mb-6">
         <div className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <h3 className="text-lg font-medium">Filter Agents</h3>
@@ -211,7 +211,7 @@ export default function AgentManagementPage() {
         </h2>
         
         {filteredAgents.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card title="No Agents Found" className="p-8 text-center">
             <div className="text-4xl mb-3">🤖</div>
             <h3 className="text-lg font-medium mb-2">No Agents Found</h3>
             <p className="text-text-secondary mb-4">
@@ -245,7 +245,7 @@ export default function AgentManagementPage() {
       {/* Create Agent Modal - In a real app would be a proper modal component */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full">
+          <Card title="Create New Agent" className="max-w-md w-full">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">Create New Agent</h3>

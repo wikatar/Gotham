@@ -5,6 +5,7 @@ import { Pipeline, PipelineNode } from '../schema';
 import { PrismaClient } from '@prisma/client';
 import { applyRule } from '../../orchestrator/rulesEngine';
 import { executeModel } from '@/src/api/models/run';
+import { runLogicRules, LogicEngineResult } from '../../../lib/logicEngine';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
 async function executePipeline(pipeline: Pipeline, inputData: any, accountId: string) {
   // Store the results of each node execution
   const nodeResults: Record<string, any> = {};
+  let logicEngineResults: LogicEngineResult[] = [];
   
   // Execute each node in sequence, respecting dependencies
   for (const node of pipeline.nodes) {
@@ -102,17 +104,108 @@ async function executePipeline(pipeline: Pipeline, inputData: any, accountId: st
       
       // Store the result for potential use by downstream nodes
       nodeResults[node.id] = result;
+
+      // Run logic rules on the node result if it's a data processing node
+      if (node.type === 'data' || node.type === 'model') {
+        try {
+          const logicResult = await runLogicRules(result, {
+            entityType: 'pipeline',
+            entityId: pipeline.id,
+            userId: accountId,
+            metadata: {
+              nodeId: node.id,
+              nodeName: node.name,
+              nodeType: node.type,
+              pipelineId: pipeline.id,
+              pipelineName: pipeline.name
+            }
+          });
+          
+          logicEngineResults.push(logicResult);
+          
+          // Log logic engine execution if rules were triggered
+          if (logicResult.rulesTriggered > 0) {
+            await prisma.log.create({
+              data: {
+                accountId,
+                type: 'logic_engine_execution',
+                action: `Logic rules triggered in pipeline node: ${node.name}`,
+                resourceId: pipeline.id,
+                resourceType: 'pipeline',
+                metadata: {
+                  nodeId: node.id,
+                  rulesTriggered: logicResult.rulesTriggered,
+                  actionsExecuted: logicResult.actionsExecuted,
+                  executionTime: logicResult.executionTime,
+                  actionResults: logicResult.actionResults
+                },
+              },
+            });
+          }
+        } catch (logicError) {
+          console.error(`Logic engine error for node ${node.id}:`, logicError);
+          // Don't fail the pipeline if logic rules fail
+        }
+      }
     } catch (error) {
       console.error(`Error executing node ${node.id} (${node.name}):`, error);
       throw new Error(`Node ${node.id} (${node.name}) execution failed: ${(error as Error).message}`);
     }
   }
   
-  // Return the full results and the final node's result separately
+  // Run final logic rules on the complete pipeline result
   const finalNodeId = pipeline.nodes[pipeline.nodes.length - 1]?.id;
+  const finalResult = finalNodeId ? nodeResults[finalNodeId] : null;
+  
+  if (finalResult) {
+    try {
+      const finalLogicResult = await runLogicRules(finalResult, {
+        entityType: 'pipeline',
+        entityId: pipeline.id,
+        userId: accountId,
+        metadata: {
+          stage: 'final',
+          pipelineId: pipeline.id,
+          pipelineName: pipeline.name,
+          allNodeResults: nodeResults
+        }
+      });
+      
+      logicEngineResults.push(finalLogicResult);
+      
+      if (finalLogicResult.rulesTriggered > 0) {
+        await prisma.log.create({
+          data: {
+            accountId,
+            type: 'logic_engine_execution',
+            action: `Final logic rules triggered for pipeline: ${pipeline.name}`,
+            resourceId: pipeline.id,
+            resourceType: 'pipeline',
+            metadata: {
+              stage: 'final',
+              rulesTriggered: finalLogicResult.rulesTriggered,
+              actionsExecuted: finalLogicResult.actionsExecuted,
+              executionTime: finalLogicResult.executionTime,
+              actionResults: finalLogicResult.actionResults
+            },
+          },
+        });
+      }
+    } catch (logicError) {
+      console.error(`Final logic engine error:`, logicError);
+    }
+  }
+  
+  // Return the full results and the final node's result separately
   return {
     all: nodeResults,
-    final: finalNodeId ? nodeResults[finalNodeId] : null
+    final: finalResult,
+    logicEngine: {
+      totalExecutions: logicEngineResults.length,
+      totalRulesTriggered: logicEngineResults.reduce((sum, r) => sum + r.rulesTriggered, 0),
+      totalActionsExecuted: logicEngineResults.reduce((sum, r) => sum + r.actionsExecuted, 0),
+      results: logicEngineResults
+    }
   };
 }
 
@@ -184,16 +277,47 @@ async function executeModelNode(node: PipelineNode, input: any, accountId: strin
 }
 
 // Execute a logic node (rule evaluation)
-function executeLogicNode(node: PipelineNode, input: any) {
+async function executeLogicNode(node: PipelineNode, input: any) {
   console.log(`Executing logic node: ${node.name}`);
   
-  if (!node.config || !node.config.logic) {
-    throw new Error(`Logic node ${node.id} is missing logic configuration`);
+  if (!node.config) {
+    throw new Error(`Logic node ${node.id} is missing configuration`);
   }
   
-  // Apply the rule logic to the input data
-  const result = applyRule(node.config.logic, input);
-  return { result, input };
+  // Check if using new Logic Engine rules or old legacy logic
+  if (node.config.logicRuleIds && Array.isArray(node.config.logicRuleIds)) {
+    // Use new Logic Engine with specific rule IDs
+    const rules = await prisma.logicRule.findMany({
+      where: {
+        id: { in: node.config.logicRuleIds },
+        isActive: true
+      }
+    });
+    
+    const logicResult = await runLogicRules(input, {
+      entityType: 'pipeline_node',
+      entityId: node.id,
+      metadata: {
+        nodeId: node.id,
+        nodeName: node.name,
+        nodeType: node.type
+      }
+    }, rules);
+    
+    return {
+      logicEngineResult: logicResult,
+      input,
+      rulesTriggered: logicResult.rulesTriggered,
+      actionsExecuted: logicResult.actionsExecuted,
+      actionResults: logicResult.actionResults
+    };
+  } else if (node.config.logic) {
+    // Use legacy rule logic for backward compatibility
+    const result = applyRule(node.config.logic, input);
+    return { result, input };
+  } else {
+    throw new Error(`Logic node ${node.id} is missing logic configuration or logicRuleIds`);
+  }
 }
 
 // Execute an agent node

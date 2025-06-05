@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
+import Card from '../../app/components/ui/Card'
+import Button from '../../app/components/ui/Button'
 import PipelineExecutionDetail from './PipelineExecutionDetail'
 import PipelineResultCard from '@/app/components/pipelines/PipelineResultCard'
 import Link from 'next/link'
+
+// Simple skeleton component
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
+)
 
 type User = {
   id: string
@@ -111,7 +115,7 @@ export default function PipelineHistory({
       {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <Card key={i} className="p-6">
+            <Card key={i} title="Loading...">
               <div className="flex justify-between">
                 <div>
                   <Skeleton className="h-6 w-48 mb-2" />

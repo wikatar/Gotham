@@ -1,312 +1,323 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { toast } from '@/components/ui/use-toast'
+import { useState, useEffect } from 'react'
+import Card from '../../app/components/ui/Card'
+import Button from '../../app/components/ui/Button'
+import { Play, Save, Trash2, Plus, Settings } from 'lucide-react'
 
-type CleaningStep =
-  | { type: 'trim'; column: string }
-  | { type: 'lowercase'; column: string }
-  | { type: 'dropNulls'; column: string }
-  | { type: 'rename'; from: string; to: string }
+// Simple toast function
+const toast = ({ title, description, variant }: { 
+  title: string; 
+  description: string; 
+  variant?: string;
+}) => {
+  console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`)
+  // In a real app, this would show a proper toast notification
+}
 
-export default function DataCleaner({ sourceId }: { sourceId: string }) {
-  const [originalRows, setOriginalRows] = useState<any[]>([])
-  const [columns, setColumns] = useState<string[]>([])
+interface DataCleanerProps {
+  sourceId: string
+}
+
+interface CleaningStep {
+  id: string
+  type: string
+  field: string
+  operation: string
+  value?: string
+  enabled: boolean
+}
+
+export default function DataCleaner({ sourceId }: DataCleanerProps) {
   const [steps, setSteps] = useState<CleaningStep[]>([])
-  const [loading, setLoading] = useState(true)
-  const [savingPipeline, setSavingPipeline] = useState(false)
-  const [newFieldName, setNewFieldName] = useState('')
-  const [selectedField, setSelectedField] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [executing, setExecuting] = useState(false)
+  const [sourceInfo, setSourceInfo] = useState<any>(null)
+  const [availableFields, setAvailableFields] = useState<string[]>([])
 
+  // Fetch source info and available fields
   useEffect(() => {
-    setLoading(true)
-    fetch(`/api/data/source/${sourceId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setOriginalRows(data.rows)
-        if (data.rows.length > 0) {
-          setColumns(Object.keys(data.rows[0].row))
+    const fetchSourceInfo = async () => {
+      try {
+        const response = await fetch(`/api/data/source/info/${sourceId}`)
+        const data = await response.json()
+        
+        if (data.source) {
+          setSourceInfo(data.source)
+          setAvailableFields(data.source.fields || [])
         }
-        setLoading(false)
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error)
-        toast({
-          title: 'Error fetching data',
-          description: 'Could not load data from source',
-          variant: 'destructive',
-        })
-        setLoading(false)
-      })
-  }, [sourceId])
-
-  const addStep = (step: CleaningStep) => {
-    setSteps((prev) => [...prev, step])
-  }
-
-  const removeStep = (index: number) => {
-    setSteps((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const addRenameStep = () => {
-    if (selectedField && newFieldName) {
-      addStep({ type: 'rename', from: selectedField, to: newFieldName })
-      setSelectedField('')
-      setNewFieldName('')
-    }
-  }
-
-  const applyCleaning = (row: any): any => {
-    let result = { ...row }
-
-    for (const step of steps) {
-      if (step.type === 'trim' && result[step.column]) {
-        result[step.column] = result[step.column]?.trim?.()
-      } else if (step.type === 'lowercase' && result[step.column]) {
-        result[step.column] = result[step.column]?.toLowerCase?.()
-      } else if (step.type === 'dropNulls') {
-        if (result[step.column] == null || result[step.column] === '') return null
-      } else if (step.type === 'rename') {
-        result[step.to] = result[step.from]
-        delete result[step.from]
+      } catch (error) {
+        console.error('Error fetching source info:', error)
       }
     }
 
-    return result
+    fetchSourceInfo()
+  }, [sourceId])
+
+  const addStep = () => {
+    const newStep: CleaningStep = {
+      id: Date.now().toString(),
+      type: 'transform',
+      field: availableFields[0] || '',
+      operation: 'remove_nulls',
+      enabled: true
+    }
+    setSteps([...steps, newStep])
   }
 
-  const cleaned = originalRows
-    .map((r) => applyCleaning(r.row))
-    .filter((r) => r !== null)
+  const updateStep = (id: string, updates: Partial<CleaningStep>) => {
+    setSteps(steps.map(step => 
+      step.id === id ? { ...step, ...updates } : step
+    ))
+  }
 
-  const savePipeline = async () => {
+  const removeStep = (id: string) => {
+    setSteps(steps.filter(step => step.id !== id))
+  }
+
+  const executeSteps = async () => {
     if (steps.length === 0) {
       toast({
-        title: 'No transformations added',
-        description: 'Add at least one transformation step before saving',
-        variant: 'destructive',
+        title: 'No steps to execute',
+        description: 'Please add at least one cleaning step',
+        variant: 'destructive'
       })
       return
     }
 
-    const name = prompt('Name this cleaning pipeline:')
-    if (!name) return
-
-    setSavingPipeline(true)
+    setExecuting(true)
+    
     try {
-      const response = await fetch('/api/data/cleaning/create', {
+      const response = await fetch('/api/data/cleaning/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           sourceId,
-          name,
-          steps,
+          steps: steps.filter(step => step.enabled)
         }),
       })
-
-      const data = await response.json()
-      if (response.ok) {
+      
+      const result = await response.json()
+      
+      if (result.success) {
         toast({
-          title: 'Pipeline saved',
-          description: `Cleaning pipeline "${name}" saved successfully`,
+          title: 'Cleaning completed',
+          description: `Processed ${result.recordsProcessed} records`
         })
       } else {
-        throw new Error(data.error || 'Failed to save pipeline')
+        throw new Error(result.message || 'Cleaning failed')
+      }
+    } catch (error) {
+      console.error('Error executing cleaning steps:', error)
+      toast({
+        title: 'Cleaning failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      })
+    }
+    
+    setExecuting(false)
+  }
+
+  const savePipeline = async () => {
+    if (steps.length === 0) {
+      toast({
+        title: 'No steps to save',
+        description: 'Please add at least one cleaning step',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setLoading(true)
+    
+    try {
+      const response = await fetch('/api/data/cleaning/pipeline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceId,
+          name: `Cleaning Pipeline ${Date.now()}`,
+          steps
+        }),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast({
+          title: 'Pipeline saved',
+          description: 'Cleaning pipeline saved successfully'
+        })
+      } else {
+        throw new Error(result.message || 'Save failed')
       }
     } catch (error) {
       console.error('Error saving pipeline:', error)
       toast({
-        title: 'Error saving pipeline',
-        description: (error as Error).message,
-        variant: 'destructive',
+        title: 'Save failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
       })
-    } finally {
-      setSavingPipeline(false)
     }
+    
+    setLoading(false)
   }
 
-  const formatStepText = (step: CleaningStep): string => {
-    switch (step.type) {
-      case 'trim':
-        return `Trim whitespace: ${step.column}`
-      case 'lowercase':
-        return `Lowercase: ${step.column}`
-      case 'dropNulls':
-        return `Drop nulls: ${step.column}`
-      case 'rename':
-        return `Rename: ${step.from} → ${step.to}`
-    }
-  }
+  const operationOptions = [
+    { value: 'remove_nulls', label: 'Remove null values' },
+    { value: 'fill_nulls', label: 'Fill null values' },
+    { value: 'remove_duplicates', label: 'Remove duplicates' },
+    { value: 'trim_whitespace', label: 'Trim whitespace' },
+    { value: 'to_lowercase', label: 'Convert to lowercase' },
+    { value: 'to_uppercase', label: 'Convert to uppercase' },
+    { value: 'remove_special_chars', label: 'Remove special characters' },
+    { value: 'standardize_format', label: 'Standardize format' }
+  ]
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Data Cleaning Pipeline</h1>
-
-      {loading ? (
-        <div className="text-center py-8">Loading data...</div>
-      ) : (
-        <>
-          <Card className="p-4 space-y-4">
-            <h2 className="font-semibold">Add Transformation Steps</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    addStep({ type: 'trim', column: e.target.value })
-                    e.target.value = ''
-                  }
-                }}
-                className="p-2 border rounded"
-              >
-                <option value="">Trim whitespace...</option>
-                {columns.map((c) => (
-                  <option key={`trim-${c}`} value={c}>{c}</option>
-                ))}
-              </select>
-
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    addStep({ type: 'lowercase', column: e.target.value })
-                    e.target.value = ''
-                  }
-                }}
-                className="p-2 border rounded"
-              >
-                <option value="">Convert to lowercase...</option>
-                {columns.map((c) => (
-                  <option key={`lowercase-${c}`} value={c}>{c}</option>
-                ))}
-              </select>
-
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    addStep({ type: 'dropNulls', column: e.target.value })
-                    e.target.value = ''
-                  }
-                }}
-                className="p-2 border rounded"
-              >
-                <option value="">Drop null values...</option>
-                {columns.map((c) => (
-                  <option key={`dropNulls-${c}`} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-end gap-2">
-              <div className="flex-1 space-y-1">
-                <label htmlFor="field-to-rename" className="text-sm">Rename field</label>
-                <select
-                  id="field-to-rename"
-                  value={selectedField}
-                  onChange={(e) => setSelectedField(e.target.value)}
-                  className="p-2 border rounded w-full"
-                >
-                  <option value="">Select field...</option>
-                  {columns.map((c) => (
-                    <option key={`rename-${c}`} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1 space-y-1">
-                <label htmlFor="new-field-name" className="text-sm">New name</label>
-                <input
-                  id="new-field-name"
-                  type="text"
-                  value={newFieldName}
-                  onChange={(e) => setNewFieldName(e.target.value)}
-                  className="p-2 border rounded w-full"
-                  placeholder="New field name"
-                />
-              </div>
-              <Button 
-                onClick={addRenameStep} 
-                disabled={!selectedField || !newFieldName}
-                variant="outline"
-              >
-                Add
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-sm">
-              {steps.length === 0 ? (
-                <p className="text-muted-foreground italic">No transformation steps added yet</p>
-              ) : (
-                steps.map((step, i) => (
-                  <div 
-                    key={i} 
-                    className="bg-muted flex items-center gap-2 text-muted-foreground px-3 py-1 rounded-full"
-                  >
-                    <span>{formatStepText(step)}</span>
-                    <button
-                      onClick={() => removeStep(i)}
-                      className="hover:text-red-500 focus:outline-none"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-
-          <Card className="p-4 overflow-auto max-h-[500px]">
-            <h2 className="font-semibold mb-2">
-              Preview Results ({cleaned.length} of {originalRows.length} rows)
-            </h2>
-            {cleaned.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No rows to display after applying transformations
-              </div>
-            ) : (
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr>
-                    {Object.keys(cleaned[0]).map((c) => (
-                      <th key={c} className="text-left p-2 border-b bg-muted/20 sticky top-0">
-                        {c}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {cleaned.slice(0, 10).map((row, i) => (
-                    <tr key={i} className="hover:bg-muted/20">
-                      {Object.keys(row).map((c) => (
-                        <td key={c} className="p-2 border-b border-muted truncate max-w-[200px]">
-                          {typeof row[c] === 'string' ? row[c] : JSON.stringify(row[c])}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Card>
-
-          <div className="flex justify-between">
-            <Button 
-              variant="destructive" 
-              onClick={() => setSteps([])}
-              disabled={steps.length === 0}
-            >
-              Clear All Steps
-            </Button>
-            <Button 
-              onClick={savePipeline}
-              disabled={steps.length === 0 || savingPipeline}
-            >
-              {savingPipeline ? 'Saving...' : 'Save Transformation Pipeline'}
-            </Button>
+    <Card title="Data Cleaning Pipeline">
+      <div className="space-y-6">
+        {/* Source Info */}
+        {sourceInfo && (
+          <div className="bg-gray-50 p-4 rounded">
+            <h4 className="font-medium mb-2">Source: {sourceInfo.name}</h4>
+            <p className="text-sm text-gray-600">
+              {sourceInfo.recordCount?.toLocaleString()} records • {availableFields.length} fields
+            </p>
           </div>
-        </>
-      )}
-    </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={addStep}
+            disabled={availableFields.length === 0}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Step
+          </Button>
+          <Button
+            variant="primary"
+            onClick={executeSteps}
+            disabled={executing || steps.length === 0}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            {executing ? 'Executing...' : 'Execute Pipeline'}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={savePipeline}
+            disabled={loading || steps.length === 0}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Pipeline
+          </Button>
+        </div>
+
+        {/* Steps */}
+        {steps.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded">
+            <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-2">No cleaning steps defined</p>
+            <p className="text-sm text-gray-500">Add steps to build your data cleaning pipeline</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {steps.map((step, index) => (
+              <div key={step.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                      Step {index + 1}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={step.enabled}
+                      onChange={(e) => updateStep(step.id, { enabled: e.target.checked })}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-600">Enabled</span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => removeStep(step.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Field</label>
+                    <select
+                      value={step.field}
+                      onChange={(e) => updateStep(step.id, { field: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {availableFields.map(field => (
+                        <option key={field} value={field}>{field}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Operation</label>
+                    <select
+                      value={step.operation}
+                      onChange={(e) => updateStep(step.id, { operation: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {operationOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(step.operation === 'fill_nulls' || step.operation === 'standardize_format') && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Value</label>
+                      <input
+                        type="text"
+                        value={step.value || ''}
+                        onChange={(e) => updateStep(step.id, { value: e.target.value })}
+                        placeholder="Enter value..."
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pipeline Summary */}
+        {steps.length > 0 && (
+          <div className="bg-blue-50 p-4 rounded">
+            <h4 className="font-medium mb-2">Pipeline Summary</h4>
+            <p className="text-sm text-gray-600">
+              {steps.filter(s => s.enabled).length} of {steps.length} steps enabled
+            </p>
+            <div className="mt-2 space-y-1">
+              {steps.filter(s => s.enabled).map((step, index) => (
+                <div key={step.id} className="text-xs text-gray-600">
+                  {index + 1}. {operationOptions.find(op => op.value === step.operation)?.label} on {step.field}
+                  {step.value && ` (${step.value})`}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   )
 } 

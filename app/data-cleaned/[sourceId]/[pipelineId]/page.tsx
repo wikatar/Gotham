@@ -3,9 +3,9 @@
 import { useParams } from 'next/navigation'
 import CleanedDataViewer from '@/components/data/CleanedDataViewer'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import Button from '../../../components/ui/Button'
 import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
+import Card from '../../../components/ui/Card'
 
 export default function CleanedDataPage() {
   const params = useParams()
@@ -47,26 +47,23 @@ export default function CleanedDataPage() {
         <h1 className="text-3xl font-bold">Cleaned Data</h1>
         <div className="flex gap-2">
           <Link href={`/data-cleaner/${sourceId}`}>
-            <Button variant="outline">Back to Cleaner</Button>
+            <Button variant="secondary">Back to Cleaner</Button>
           </Link>
           <Link href={`/data-sources`}>
-            <Button variant="outline">All Sources</Button>
+            <Button variant="secondary">All Sources</Button>
           </Link>
         </div>
       </div>
 
       {loading ? (
-        <Card className="p-6">
+        <Card title="Loading...">
           <div className="text-center py-8">Loading information...</div>
         </Card>
       ) : sourceInfo && pipelineInfo ? (
         <>
           <div className="mb-6">
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold">
-                Source: {sourceInfo.name} • Pipeline: {pipelineInfo.name}
-              </h2>
-              <p className="text-sm text-muted-foreground">
+            <Card title={`Source: ${sourceInfo.name} • Pipeline: ${pipelineInfo.name}`}>
+              <p className="text-sm text-gray-600">
                 {sourceInfo.recordCount} original records • Cleaned with {pipelineInfo.steps.length} transformation steps
               </p>
             </Card>
@@ -75,9 +72,8 @@ export default function CleanedDataPage() {
           <CleanedDataViewer sourceId={sourceId} pipelineId={pipelineId} />
         </>
       ) : (
-        <Card className="p-6 text-center">
-          <h2 className="text-xl font-bold mb-2">Information Not Found</h2>
-          <p className="text-muted-foreground mb-4">
+        <Card title="Information Not Found">
+          <p className="text-gray-600 mb-4">
             The data source or cleaning pipeline you're looking for doesn't exist or isn't accessible.
           </p>
           <Link href="/data-sources">

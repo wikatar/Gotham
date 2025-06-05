@@ -1,12 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../ui/card'
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
-import { Loader2, TrendingUp, TrendingDown, GitFork, AlertTriangle, BarChart4, Zap } from 'lucide-react'
+import Card from '../../app/components/ui/Card'
+import Badge from '../../app/components/ui/Badge'
+import Button from '../../app/components/ui/Button'
+import { TrendingUp, TrendingDown, AlertCircle, BarChart3, PieChart, Activity } from 'lucide-react'
 import InsightActionPanel from './InsightActionPanel'
+
+// Simple Tab components
+const TabButton = ({ id, label, active, onClick }: { 
+  id: string; 
+  label: string; 
+  active: boolean; 
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+      active
+        ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`}
+  >
+    {label}
+  </button>
+)
 
 interface DataInsightsProps {
   sourceId?: string
@@ -16,11 +34,11 @@ interface DataInsightsProps {
 export default function DataInsights({ sourceId, pipelineId }: DataInsightsProps) {
   const [loading, setLoading] = useState(false)
   const [insights, setInsights] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<string>('summary')
   const [error, setError] = useState<string | null>(null)
-  const [insightWithAction, setInsightWithAction] = useState<any | null>(null)
+  const [selectedInsight, setSelectedInsight] = useState<any | null>(null)
+  const [activeTab, setActiveTab] = useState('overview')
 
-  const fetchInsights = async (type: string) => {
+  const fetchInsights = async () => {
     if (!sourceId && !pipelineId) {
       setError('No data source or pipeline specified')
       return
@@ -30,212 +48,241 @@ export default function DataInsights({ sourceId, pipelineId }: DataInsightsProps
     setError(null)
     
     try {
-      const response = await fetch('/api/insights/analyze', {
+      const requestBody: any = {}
+      
+      if (sourceId) requestBody.sourceId = sourceId
+      if (pipelineId) requestBody.pipelineId = pipelineId
+      
+      const response = await fetch('/api/insights/data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          sourceId,
-          pipelineId,
-          type
-        }),
+        body: JSON.stringify(requestBody),
       })
       
       const data = await response.json()
       
       if (data.error) {
-        setError(data.message || 'Error fetching insights')
+        setError(data.message || 'Error generating insights')
         setInsights([])
       } else {
         setInsights(data.insights || [])
       }
     } catch (err) {
-      console.error('Error fetching insights:', err)
-      setError('Failed to fetch insights')
+      console.error('Error generating insights:', err)
+      setError('Failed to generate insights')
       setInsights([])
     }
     
     setLoading(false)
   }
 
-  // Fetch insights when tab changes
+  // Initial fetch
   useEffect(() => {
-    fetchInsights(activeTab)
-    setInsightWithAction(null) // Reset action panel when changing tabs
-  }, [activeTab, sourceId, pipelineId])
-  
+    fetchInsights()
+  }, [sourceId, pipelineId])
+
   // Get icon for insight type
-  const getInsightIcon = (insight: any) => {
-    switch (insight.type) {
-      case 'trend':
-        return insight.percentChange > 0 ? 
-          <TrendingUp className="h-5 w-5 text-green-500" /> : 
-          <TrendingDown className="h-5 w-5 text-red-500" />
-      case 'correlation':
-        return <GitFork className="h-5 w-5 text-blue-500" />
-      case 'recommendation':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />
-      case 'distribution':
-      case 'summary':
-      default:
-        return <BarChart4 className="h-5 w-5 text-purple-500" />
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'trend': return <TrendingUp className="h-4 w-4" />
+      case 'anomaly': return <AlertCircle className="h-4 w-4" />
+      case 'pattern': return <BarChart3 className="h-4 w-4" />
+      case 'distribution': return <PieChart className="h-4 w-4" />
+      default: return <Activity className="h-4 w-4" />
     }
   }
-  
-  // Get color for confidence level
+
+  // Get color for insight confidence
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 90) return 'bg-green-100 text-green-800'
-    if (confidence >= 75) return 'bg-blue-100 text-blue-800'
-    if (confidence >= 60) return 'bg-yellow-100 text-yellow-800'
-    return 'bg-gray-100 text-gray-800'
-  }
-  
-  // Handle selecting an insight for action
-  const handleActionClick = (insight: any) => {
-    setInsightWithAction(insight)
-  }
-  
-  // Reset action panel after completion
-  const handleActionComplete = () => {
-    setInsightWithAction(null)
+    if (confidence >= 80) return 'text-green-600 bg-green-100'
+    if (confidence >= 60) return 'text-yellow-600 bg-yellow-100'
+    return 'text-red-600 bg-red-100'
   }
 
+  // Handle selecting an insight for action
+  const handleSelectInsight = (insight: any) => {
+    setSelectedInsight(insight)
+  }
+  
+  // Reset selected insight after action completion
+  const handleActionComplete = () => {
+    setSelectedInsight(null)
+  }
+
+  // Group insights by type
+  const groupedInsights = insights.reduce((acc, insight) => {
+    const type = insight.type || 'general'
+    if (!acc[type]) acc[type] = []
+    acc[type].push(insight)
+    return acc
+  }, {} as Record<string, any[]>)
+
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">AI Insights</CardTitle>
-        <CardDescription>
-          Automated analysis of your cleaned data
-        </CardDescription>
-      </CardHeader>
+    <Card title="Data Insights">
+      <p className="text-gray-600 mb-4">
+        AI-powered insights and patterns discovered in your data
+      </p>
       
-      <div className="px-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="correlations">Correlations</TabsTrigger>
-            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-      
-      <CardContent>
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Analyzing data...</p>
+      {!selectedInsight ? (
+        <>
+          <Button 
+            className="w-full mb-4"
+            variant="primary"
+            disabled={loading}
+            onClick={fetchInsights}
+          >
+            {loading ? 'Generating Insights...' : 'Generate New Insights'}
+          </Button>
+          
+          {error ? (
+            <div className="text-center py-6">
+              <p className="text-lg font-medium mb-2">Could not generate insights</p>
+              <p className="text-sm text-gray-600">{error}</p>
             </div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-lg font-medium mb-2">Could not generate insights</p>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => fetchInsights(activeTab)}
-            >
-              Try Again
-            </Button>
-          </div>
-        ) : insights.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-lg font-medium mb-2">No insights available</p>
-            <p className="text-sm text-muted-foreground">
-              There isn't enough data for meaningful {activeTab} analysis,
-              or the data doesn't have patterns that can be detected for this insight type.
-            </p>
-          </div>
-        ) : (
-          <>
-            {insightWithAction ? (
-              <div className="space-y-4">
-                <InsightActionPanel insight={insightWithAction} onActionComplete={handleActionComplete} />
-                <div className="text-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInsightWithAction(null)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
+          ) : insights.length === 0 && !loading ? (
+            <div className="text-center py-6">
+              <p className="text-lg font-medium mb-2">No insights available</p>
+              <p className="text-sm text-gray-600">
+                Click "Generate New Insights" to analyze your data and discover patterns.
+              </p>
+            </div>
+          ) : insights.length > 0 ? (
+            <div className="space-y-4">
+              {/* Tab Navigation */}
+              <div className="flex space-x-1 border-b border-gray-200">
+                <TabButton 
+                  id="overview" 
+                  label="Overview" 
+                  active={activeTab === 'overview'} 
+                  onClick={() => setActiveTab('overview')}
+                />
+                <TabButton 
+                  id="trends" 
+                  label="Trends" 
+                  active={activeTab === 'trends'} 
+                  onClick={() => setActiveTab('trends')}
+                />
+                <TabButton 
+                  id="patterns" 
+                  label="Patterns" 
+                  active={activeTab === 'patterns'} 
+                  onClick={() => setActiveTab('patterns')}
+                />
               </div>
-            ) : (
-              <div className="space-y-4">
-                {insights.map((insight, index) => (
-                  <div key={index} className="border rounded-md p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        {getInsightIcon(insight)}
+
+              {activeTab === 'overview' && (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {insights.length}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-medium">{insight.title}</h3>
-                          <Badge 
-                            variant="secondary"
-                            className={getConfidenceColor(insight.confidence)}
-                          >
-                            {insight.confidence}% confidence
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">{insight.content}</p>
-                        
-                        {/* Additional information based on insight type */}
-                        {insight.type === 'summary' && insight.stats && (
-                          <div className="grid grid-cols-4 gap-2 mt-2 text-xs">
-                            <div className="bg-muted p-2 rounded">
-                              <div className="text-muted-foreground">Average</div>
-                              <div className="font-medium">{insight.stats.avg.toFixed(2)}</div>
-                            </div>
-                            <div className="bg-muted p-2 rounded">
-                              <div className="text-muted-foreground">Minimum</div>
-                              <div className="font-medium">{insight.stats.min.toFixed(2)}</div>
-                            </div>
-                            <div className="bg-muted p-2 rounded">
-                              <div className="text-muted-foreground">Maximum</div>
-                              <div className="font-medium">{insight.stats.max.toFixed(2)}</div>
-                            </div>
-                            <div className="bg-muted p-2 rounded">
-                              <div className="text-muted-foreground">Median</div>
-                              <div className="font-medium">{insight.stats.median.toFixed(2)}</div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {insight.type === 'correlation' && (
-                          <div className="text-xs flex items-center mt-2">
-                            <span className="text-muted-foreground mr-2">Correlation coefficient:</span>
-                            <span className={`font-medium ${
-                              insight.correlation > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {insight.correlation.toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-                        
-                        <div className="mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1.5"
-                            onClick={() => handleActionClick(insight)}
-                          >
-                            <Zap className="h-3.5 w-3.5" />
-                            Take Action
-                          </Button>
-                        </div>
+                      <div className="text-sm text-blue-600">Total Insights</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded">
+                      <div className="text-2xl font-bold text-green-600">
+                        {insights.filter(i => (i.confidence || 0) >= 80).length}
                       </div>
+                      <div className="text-sm text-green-600">High Confidence</div>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 rounded">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {Object.keys(groupedInsights).length}
+                      </div>
+                      <div className="text-sm text-yellow-600">Insight Types</div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
+
+                  {/* Recent Insights */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Recent Insights</h4>
+                    {insights.slice(0, 5).map((insight, index) => (
+                      <div 
+                        key={index} 
+                        className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleSelectInsight(insight)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              {getInsightIcon(insight.type)}
+                              <h5 className="font-medium">{insight.title}</h5>
+                              <Badge variant="secondary">
+                                {insight.type || 'general'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              {insight.content}
+                            </p>
+                            {insight.confidence && (
+                              <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getConfidenceColor(insight.confidence)}`}>
+                                {insight.confidence}% confidence
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'trends' && (
+                <div className="space-y-4">
+                  {groupedInsights.trend?.map((insight, index) => (
+                    <div 
+                      key={index} 
+                      className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleSelectInsight(insight)}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                        <h5 className="font-medium">{insight.title}</h5>
+                      </div>
+                      <p className="text-sm text-gray-600">{insight.content}</p>
+                    </div>
+                  )) || (
+                    <div className="text-center py-8 text-gray-500">
+                      No trend insights available
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'patterns' && (
+                <div className="space-y-4">
+                  {groupedInsights.pattern?.map((insight, index) => (
+                    <div 
+                      key={index} 
+                      className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleSelectInsight(insight)}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <BarChart3 className="h-4 w-4 text-blue-600" />
+                        <h5 className="font-medium">{insight.title}</h5>
+                      </div>
+                      <p className="text-sm text-gray-600">{insight.content}</p>
+                    </div>
+                  )) || (
+                    <div className="text-center py-8 text-gray-500">
+                      No pattern insights available
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <InsightActionPanel
+          insight={selectedInsight}
+          onActionComplete={handleActionComplete}
+          onCancel={() => setSelectedInsight(null)}
+        />
+      )}
     </Card>
   )
 } 
